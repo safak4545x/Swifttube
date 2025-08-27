@@ -1,2 +1,2 @@
 # Swifttube
-a native YouTube application for macOS
+a native YouTube cilent for macOS
