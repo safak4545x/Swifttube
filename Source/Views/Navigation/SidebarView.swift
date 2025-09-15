@@ -1,29 +1,26 @@
 /*
- File Overview (EN)
- Purpose: Legacy/custom sidebar navigation component listing core pages and user subscriptions.
- Key Responsibilities:
- - Display navigation items with icons and selection state
- - List user subscriptions and allow channel selection
- Used By: Older navigation layouts; superseded by native macOS sidebar in MainContentView.
-
- Dosya Özeti (TR)
- Amacı: Çekirdek sayfalar ve kullanıcı aboneliklerini listeleyen eski/özel yan menü bileşeni.
- Ana Sorumluluklar:
- - Simge ve seçim durumu ile navigation öğelerini göstermek
- - Kullanıcı aboneliklerini listelemek ve kanal seçimini sağlamak
- Nerede Kullanılır: Eski navigasyon düzenlerinde; MainContentView’deki yerel sidebar ile yer değiştirmiştir.
+ Overview / Genel Bakış
+ EN: Legacy/custom sidebar listing core pages and user subscriptions; replaced by native sidebar in MainContentView.
+ TR: Çekirdek sayfalar ve abonelikleri listeleyen eski/özel yan menü; MainContentView’de yerel sidebar ile değiştirildi.
 */
 
+// EN: SwiftUI-based sidebar list. TR: SwiftUI tabanlı yan menü listesi.
 import SwiftUI
 
+// EN: Legacy sidebar for navigation and subscriptions. TR: Gezinme ve abonelikler için eski yan menü.
 struct SidebarView: View {
-        @EnvironmentObject var i18n: Localizer
+		// EN: Localizer for labels. TR: Etiketler için yerelleştirici.
+		@EnvironmentObject var i18n: Localizer
+    // EN: Currently selected sidebar item id. TR: Geçerli seçili yan menü öğe id'si.
     @Binding var selectedSidebarId: String
+    // EN: Current URL corresponding to selection. TR: Seçime karşılık gelen geçerli URL.
     @Binding var currentURL: String
+    // EN: Controls channel URL input sheet visibility. TR: Kanal URL giriş sayfası görünürlüğü.
     @Binding var showUserChannelInput: Bool
+    // EN: API service carrying subscriptions/loading flags. TR: Abonelikler/yükleme bayraklarını taşıyan API servisi.
     @ObservedObject var youtubeAPI: YouTubeAPIService
     
-    // Lokalize edilmiş dinamik sidebar öğeleri (global sabit yerine)
+    // EN: Dynamic, localized sidebar items. TR: Dinamik, yerelleştirilmiş yan menü öğeleri.
     private var localizedSidebarItems: [SidebarItem] {
         [
             SidebarItem(systemName: "house.fill", title: i18n.t(.home), url: "https://www.youtube.com/"),
@@ -37,16 +34,18 @@ struct SidebarView: View {
     
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
-            // Sidebar yazıları sadece üstte
+            // EN: Top static navigation items. TR: Üstteki statik gezinme öğeleri.
             ForEach(localizedSidebarItems) { item in
                 Button(action: {
+                    // EN: Update selection and drive content fetch. TR: Seçimi güncelle ve içerik çekimini tetikle.
                     selectedSidebarId = item.id
                     currentURL = item.url
-                    // Shorts sayfasına geçildiğinde Shorts videolarını yükle
+                    // EN: Load Shorts feed when entering Shorts. TR: Shorts sayfasına girince Shorts akışını yükle.
                     if item.url == "https://www.youtube.com/shorts" {
                         youtubeAPI.fetchShortsVideos(suppressOverlay: false)
                     } else {
-                        // Ana sayfa: seçili özel kategori varsa onu; yoksa Home önerileri
+                        // EN: On Home, prefer selected custom category else default recommendations.
+                        // TR: Ana sayfada, seçili özel kategori varsa onu; yoksa varsayılan öneriler.
                         if let sel = youtubeAPI.selectedCustomCategoryId,
                            let custom = youtubeAPI.customCategories.first(where: { $0.id == sel }) {
                             youtubeAPI.fetchVideos(for: custom)
@@ -71,13 +70,13 @@ struct SidebarView: View {
                                 ? Color.accentColor.opacity(0.15) : Color.clear
                         )
                         .cornerRadius(8)
-                        Spacer()  // Yazıları sola yaslamak için
+                        Spacer()  // EN: Keep labels left-aligned. TR: Yazıları sola yasla.
                     }
                 }
                 .buttonStyle(PlainButtonStyle())
             }
             
-            // Abonelikler bölümü
+            // EN: Subscriptions section. TR: Abonelikler bölümü.
             VStack(alignment: .leading, spacing: 8) {
                 Divider()
                 HStack {
@@ -97,7 +96,7 @@ struct SidebarView: View {
                 .padding(.leading, 8)
                 .padding(.trailing, 8)
                 
-                // Yükleme durumu
+                // EN: Loading state for user data. TR: Kullanıcı verisi yükleme durumu.
                 if youtubeAPI.isLoadingUserData {
                     HStack(spacing: 8) {
                         ProgressView()
@@ -113,10 +112,10 @@ struct SidebarView: View {
                     .padding(.horizontal, 8)
                 }
                 
-                // Kullanıcının kendi kanalı (URL'den alınan)
+                // EN: User channel from URL + derived subscriptions. TR: URL'den alınan kullanıcı kanalı + türetilen abonelikler.
                 if youtubeAPI.userChannelFromURL != nil {
                     VStack(alignment: .leading, spacing: 4) {
-                        // URL'den alınan abonelikler
+                        // EN: Show first 10 subscriptions. TR: İlk 10 aboneliği göster.
                         ForEach(youtubeAPI.userSubscriptionsFromURL.prefix(10)) { channel in
                             HStack(spacing: 8) {
                                 CachedAsyncImage(url: URL(string: channel.thumbnailURL)) { image in
@@ -137,7 +136,7 @@ struct SidebarView: View {
                             .contentShape(Rectangle())
                         }
                         
-                        // Daha fazla abonelik varsa göster
+                        // EN: Show a "more" row when subscriptions exceed 10. TR: 10'dan fazla olduğunda "daha fazla" satırı göster.
                         if youtubeAPI.userSubscriptionsFromURL.count > 10 {
                             HStack(spacing: 8) {
                                 Image(systemName: "ellipsis")
@@ -164,6 +163,7 @@ struct SidebarView: View {
                     .padding(.horizontal, 8)
                     .padding(.vertical, 4)
                 } else {
+                    // EN: Prompt user to add a channel URL. TR: Kullanıcıya kanal URL'si eklet.
                     Button(action: {
                         showUserChannelInput = true
                     }) {
@@ -182,6 +182,7 @@ struct SidebarView: View {
                     .buttonStyle(.plain)
                 }
                 
+                // EN: Show parsing/network error for user channel. TR: Kullanıcı kanalı için ayrıştırma/ağ hatasını göster.
                 if let error = youtubeAPI.userChannelError {
                     Text(error)
                         .font(.system(size: 10))
@@ -191,11 +192,11 @@ struct SidebarView: View {
             }
             .padding(.top, 16)
             .padding(.bottom, 12)
-            Spacer()  // Yazıları üste itmek için
+            Spacer()  // EN: Push content to top. TR: İçeriği üste it.
         }
-        .padding(.top, 36)  // Daha fazla üst padding
-        .padding(.leading, 4)  // Çok az sol padding, yazıları tam sola al
-        .frame(width: 160)  // Sabit genişlik
+        .padding(.top, 36)  // EN: Extra top padding. TR: Fazladan üst boşluk.
+        .padding(.leading, 4)  // EN: Tiny leading padding. TR: Az bir sol boşluk.
+        .frame(width: 160)  // EN: Fixed width. TR: Sabit genişlik.
         .background(
             VisualEffectView(material: .sidebar, blendingMode: .behindWindow)
         )

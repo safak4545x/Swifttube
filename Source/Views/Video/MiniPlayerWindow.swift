@@ -1,25 +1,15 @@
 /*
- File Overview (EN)
- Purpose: Floating mini player window (PiP-like) that can take over playback and later hand it back to inline player.
- Key Responsibilities:
- - Create and manage a borderless NSWindow with always-on-top behavior
- - Transfer current time and playback state between inline and mini players
- - Provide quick controls and close/restore actions
- Used By: Bottom bar and context actions to pop out the player.
-
- Dosya Özeti (TR)
- Amacı: Oynatmayı devralıp daha sonra sekme içi oynatıcıya geri verebilen, yüzen mini oynatıcı penceresi (PiP benzeri).
- Ana Sorumluluklar:
- - Kenarlıksız ve her zaman üstte NSWindow oluşturup yönetmek
- - Sekme içi ve mini oynatıcı arasında anlık zaman ve oynatma durumunu aktarmak
- - Hızlı kontroller ve kapat/geri yükle eylemleri sağlamak
- Nerede Kullanılır: Oyuncuyu dışarı çıkaran alt çubuk ve bağlam menü eylemleri.
+ Overview / Genel Bakış
+ EN: Always-on-top floating mini player (PiP-like) with simple controls and time handoff.
+ TR: Basit kontroller ve zaman devri olan, her zaman üstte kayan mini oynatıcı (PiP benzeri).
 */
 
+// EN: SwiftUI/AppKit bridge for a custom borderless floating window. TR: Özel kenarlıksız kayan pencere için SwiftUI/AppKit köprüsü.
 import SwiftUI
 import AppKit
 
 // Küçük, her zaman üstte kalan mini oynatıcı penceresi (PiP benzeri)
+// EN: Singleton manager for the mini player window lifecycle. TR: Mini oynatıcı pencere yaşam döngüsü için tekil yönetici.
 final class MiniPlayerWindow: NSObject, NSWindowDelegate {
     static let shared = MiniPlayerWindow()
 
@@ -32,8 +22,9 @@ final class MiniPlayerWindow: NSObject, NSWindowDelegate {
     var isPresented: Bool { window != nil }
     var activeVideoId: String? { currentVideoId }
 
+    // EN: Create and show the mini window; onClose returns the last time when closed. TR: Mini pencereyi oluşturup göster; kapanışta son süreyi döndürür.
     func present(videoId: String, startAt: Double, onClose: @escaping (Double?) -> Void) {
-        // Zaten açık mini pencere varsa kapat
+        // TR: Zaten açık mini pencere varsa kapat. EN: Close existing mini window if present.
         if window != nil { requestClose(with: nil) }
         self.onClose = onClose
     self.currentVideoId = videoId
@@ -41,7 +32,7 @@ final class MiniPlayerWindow: NSObject, NSWindowDelegate {
     let content = MiniPlayerContent(videoId: videoId, startSeconds: startAt) { [weak self] seconds in
             self?.requestClose(with: seconds)
         }
-    // Standart hosting view (kontrollerin tıklanabilirliği için)
+        // EN: Host SwiftUI content and allow hit-testing for controls. TR: SwiftUI içeriğini barındır ve kontroller için tıklamayı etkin tut.
     let hosting = NSHostingView(rootView: content)
 
         // 16:9 başlangıç boyutu
@@ -51,8 +42,7 @@ final class MiniPlayerWindow: NSObject, NSWindowDelegate {
         let origin = NSPoint(x: screenFrame.maxX - size.width - 20, y: screenFrame.minY + 20)
         let frame = NSRect(origin: origin, size: size)
 
-    // Borderless, şeffaf arkaplanlı pencere: sistem çerçeve/border artefaktlarını önler
-    // İçerik tarafında köşe yumuşatma ve gölge uygulanır
+        // EN: Borderless, transparent background; rounded corners and shadow applied to content. TR: Kenarlıksız, şeffaf zemin; içerikte yuvarlatma ve gölge.
     let w = NSWindow(
             contentRect: frame,
             styleMask: [.borderless, .resizable],
@@ -63,7 +53,7 @@ final class MiniPlayerWindow: NSObject, NSWindowDelegate {
     w.title = "Mini Player"
     w.backgroundColor = .clear
     w.isOpaque = false
-    // İçeriği köşeli yap: host view katmanında da maske uygula
+        // EN: Apply corner radius via host view layer mask. TR: Köşe yuvarlama için host view katman maskesi uygula.
     hosting.wantsLayer = true
     hosting.layer?.cornerRadius = 12
     hosting.layer?.masksToBounds = true
@@ -86,7 +76,7 @@ final class MiniPlayerWindow: NSObject, NSWindowDelegate {
         NSApp.activate(ignoringOtherApps: false)
 
     self.window = w
-    // Notify that mini player is now open for this video
+        // EN: Notify observers that mini player opened for this video. TR: Mini oynatıcı açıldı bilgisini yayınla.
     NotificationCenter.default.post(name: .miniPlayerOpened, object: nil, userInfo: ["videoId": videoId])
     }
 
@@ -113,14 +103,14 @@ final class MiniPlayerWindow: NSObject, NSWindowDelegate {
         pendingReturnTime = nil
         currentVideoId = nil
     cb?(returned)
-    // Global stop safety
+        // EN: Extra safety to stop any background playback. TR: Arka plan oynatımı durdurmak için ek güvenlik.
     NotificationCenter.default.post(name: .stopAllVideos, object: nil)
         if let vId {
             var info: [String: Any] = ["videoId": vId]
             if let returned { info["time"] = returned }
             NotificationCenter.default.post(name: .miniPlayerClosed, object: nil, userInfo: info)
         }
-    // Persist final time for resume
+        // EN: Persist final time for future resume. TR: Daha sonra devam etmek için süreyi kaydet.
     if let vId, let t = returned { Task { await PlaybackProgressStore.shared.save(videoId: vId, seconds: t) } }
     }
 
@@ -134,6 +124,7 @@ final class MiniPlayerWindow: NSObject, NSWindowDelegate {
     }
 }
 
+// EN: SwiftUI content for the mini window with controls. TR: Kontrolleri olan mini pencere için SwiftUI içeriği.
 private struct MiniPlayerContent: View {
     let videoId: String
     let startSeconds: Double
@@ -146,7 +137,7 @@ private struct MiniPlayerContent: View {
 
     var body: some View {
     ZStack {
-            // Sadece video: iframe içindeki tüm UI gizli
+            // EN: Video-only: all iframe UI hidden. TR: Yalnız video: iframe içindeki tüm UI gizli.
             LightYouTubeEmbed(
                 videoId: videoId,
                 startSeconds: startSeconds,
@@ -168,12 +159,12 @@ private struct MiniPlayerContent: View {
             )
             .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
 
-            // TAM YÜZEY SÜRÜKLEME: Video üzerinde herhangi bir yere basılı tutup taşıyabilmek için
+            // EN: Full-surface dragging to move the window. TR: Pencereyi taşımak için tam yüzey sürükleme.
             DragToMoveWindowOverlay()
                 .allowsHitTesting(true)
                 .zIndex(0)
 
-            // Alt bar kontrolleri: sol Play/Pause, sağ PiP (kapat)
+            // EN: Bottom bar controls: left Play/Pause, right PiP-exit (close). TR: Alt çubuk kontrolleri: solda Oynat/Duraklat, sağda PiP-çık (kapat).
             VStack {
                 Spacer()
                 HStack {
@@ -229,7 +220,7 @@ private struct MiniPlayerContent: View {
                 Task { @MainActor in controller.currentTime { t in if t > 0 { lastObservedTime = t } } }
             }
         }
-    // PiP açıkken gelen timestamp (seekToSeconds) isteklerini sadece bu videoyla eşleşiyorsa uygula
+        // EN: Honor external seek requests only for the active videoId. TR: Dış arama isteklerini sadece aktif videoId için uygula.
         .onReceive(NotificationCenter.default.publisher(for: .seekToSeconds)) { note in
             guard let secs = note.userInfo?["seconds"] as? Int else { return }
             // Mini player yalnizca açık videonun ID'si ile eşleşen istekleri uygular
@@ -267,7 +258,7 @@ private struct MiniPlayerContent: View {
 
 // Not: Standart macOS penceresi kullanıldığı için özel sürükleme hosting'ine gerek yok.
 
-// NSWindow'u tüm yüzeyden sürüklemek için şeffaf bir AppKit katmanı
+// EN: Transparent AppKit layer to drag the NSWindow from the whole surface. TR: Tüm yüzeyden NSWindow'u sürüklemek için şeffaf AppKit katmanı.
 private struct DragToMoveWindowOverlay: NSViewRepresentable {
     func makeNSView(context: Context) -> DragView {
         let v = DragView(frame: .zero)

@@ -1,44 +1,42 @@
 
 /*
- File Overview (EN)
- Purpose: Search UI for playlists with ability to add searched playlists to user library and open details.
- Key Responsibilities:
- - Bind to playlist search results and show via PlaylistRowView
- - Add to user playlists and open PlaylistView
- Used By: MainContentView toolbar action (search playlist).
-
- Dosya Özeti (TR)
- Amacı: Çalma listeleri için arama arayüzü; aranan playlist'i kullanıcı kütüphanesine ekleme ve detay açma.
- Ana Sorumluluklar:
- - Playlist arama sonuçlarına bağlanıp PlaylistRowView ile göstermek
- - Kullanıcı playlist'lerine eklemek ve PlaylistView'i açmak
- Nerede Kullanılır: MainContentView araç çubuğu (playlist ara) eylemi.
+ Overview / Genel Bakış
+ EN: Playlist search UI with ability to import and view playlists; supports CSV drag & drop import.
+ TR: Playlist arama arayüzü; playlist içe aktarma ve görüntülemeyi destekler; CSV sürükle-bırak ile içe aktarım yapar.
 */
 
+// EN: SwiftUI for UI; UTType for CSV drag & drop. TR: UI için SwiftUI; CSV sürükle-bırak için UTType.
 import SwiftUI
 import UniformTypeIdentifiers
 
+// EN: Shows playlists page/search with optional header and import. TR: Başlık ve içe aktarma seçenekli playlist sayfası/araması.
 struct PlaylistSearchView: View {
+    // EN: i18n provider. TR: i18n sağlayıcı.
     @EnvironmentObject var i18n: Localizer
-    // Dismiss to close when used as a sheet (playlist search panel)
+    // EN: Dismiss handle for sheet usage. TR: Sheet kullanımı için kapatma tutamacı.
     @Environment(\.dismiss) private var dismiss
+    // EN: API service driving playlists. TR: Playlist’leri yöneten API servisi.
     @ObservedObject var youtubeAPI: YouTubeAPIService
+    // EN: Current query text. TR: Geçerli sorgu metni.
     @State private var searchText = ""
+    // EN: Selection bindings to open playlist view. TR: Playlist görünümünü açmak için seçim binding'leri.
     @Binding var selectedPlaylist: YouTubePlaylist?
     @Binding var showPlaylistView: Bool
+    // EN: When true, renders search header; when false, acts as Playlists page. TR: true iken arama başlığı var; false iken Playlists sayfası gibi davranır.
     var showHeader: Bool = true
+    // EN: Import modal toggle. TR: İçe aktarma modal anahtarı.
     @State private var showingImportPanel = false
-    // Drag-highlight for Auto Import pill (CSV drop)
+    // EN: Drag highlight for Auto Import chip. TR: Otomatik İçe Aktar çipi için sürükleme vurgusu.
     @State private var isImportTargeted = false
-    // Tek açık playlist kontrolü
+    // EN: Ensure a single expanded playlist at a time. TR: Aynı anda tek genişletilmiş playlist.
     @State private var openPlaylistId: String? = nil
-    // Alt panel üzerindeyken sayfa kaydırmasını kilitle
+    // EN: Lock outer scrolling when inner panel is active. TR: İç panel aktifken dış kaydırmayı kilitle.
     @State private var disableOuterScroll: Bool = false
     
     var body: some View {
         ZStack(alignment: .topTrailing) {
             VStack(spacing: 0) {
-            // Optional Search Header
+            // EN: Optional search header for the sheet mode. TR: Sheet modunda opsiyonel arama başlığı.
             if showHeader {
                 HStack {
             TextField(i18n.t(.playlists) + " " + i18n.t(.search).lowercased() + "...", text: $searchText)
@@ -61,14 +59,14 @@ struct PlaylistSearchView: View {
                 .padding()
             }
             
-            // Search Results
+            // EN: Results area (loading, local grid, or searched list). TR: Sonuç alanı (yükleme, yerel ızgara veya arama listesi).
             if youtubeAPI.isSearching {
                 ProgressView(i18n.t(.search) + "...")
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
             } else {
                 ScrollView {
                     VStack(alignment: .leading, spacing: 16) {
-                        // Header (title only) for Playlists page to match Watch History spacing
+                        // EN: Header title for Playlists page variant. TR: Playlists sayfası varyantı için başlık.
                         if !showHeader {
                             HStack {
                                 Text(i18n.t(.playlists))
@@ -76,14 +74,14 @@ struct PlaylistSearchView: View {
                                     .fontWeight(.bold)
                                     .foregroundColor(.primary)
                                 Spacer()
-                                // Auto Import button is fixed as floating overlay, so header contains only title
+                                // EN: Auto Import button floats; header stays simple. TR: Otomatik İçe Aktar butonu yüzer; başlık sade kalır.
                             }
                             .padding(.horizontal, 24)
                             .padding(.top, 12)
                         }
-                        // Local user playlists grid: show only on the sidebar playlists page (no header)
+                        // EN: Local user playlists grid (Playlists page only). TR: Yerel kullanıcı playlist ızgarası (yalnız Playlists sayfasında).
                         if !showHeader && !youtubeAPI.userPlaylists.isEmpty {
-                            // Widen playlist cards a bit for better readability
+                            // EN: Slightly wider cards for readability. TR: Okunabilirlik için kartları biraz genişlet.
                             let columns = [
                                 GridItem(
                                     .adaptive(minimum: 340, maximum: 480),
@@ -100,7 +98,7 @@ struct PlaylistSearchView: View {
                             .padding(.horizontal, 24)
                         }
 
-                        // Searched playlists: only show in the dedicated search sheet (when showHeader == true)
+                        // EN: Searched playlists only in sheet mode. TR: Aranan playlist'ler yalnızca sheet modunda.
                         if showHeader {
                             if !youtubeAPI.searchedPlaylists.isEmpty {
                                 Text(i18n.t(.sectionSearchResults))
@@ -116,7 +114,7 @@ struct PlaylistSearchView: View {
                                 .padding(.horizontal)
                                 .padding(.bottom)
                             } else if !searchText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-                                // Empty state after a non-empty query
+                                // EN: Empty state after a non-empty query. TR: Boş olmayan sorgudan sonra boş durum.
                                 Text(i18n.t(.sectionSearchResults))
                                     .font(.headline)
                                     .padding(.top, 8)
@@ -132,7 +130,7 @@ struct PlaylistSearchView: View {
                 .scrollDisabled(disableOuterScroll)
             }
             }
-            // Floating Auto Import button when header hidden (matches Watch History style)
+            // EN: Floating Auto Import chip when header hidden (Playlists page). TR: Başlık gizliyken yüzen Otomatik İçe Aktar çipi (Playlists sayfası).
             if !showHeader {
                 Button(action: { showingImportPanel = true }) {
                     HStack(spacing: 4) {
@@ -155,30 +153,35 @@ struct PlaylistSearchView: View {
                 }
                 .buttonStyle(.plain)
                 .onDrop(of: [UTType.fileURL], isTargeted: $isImportTargeted) { providers in
+                    // EN: Highlight and handle CSV drop on the chip. TR: Çip üzerinde CSV bırakmayı vurgula ve işle.
                     handleCSVDrop(providers: providers)
                 }
                 .padding(.top, 10)
                 .padding(.trailing, 12)
             }
         }
-    .background(Color(NSColor.controlBackgroundColor))
+        .background(Color(NSColor.controlBackgroundColor))
         // Allow dropping CSV anywhere in the page to import (only on playlists panel)
         .onDrop(of: [UTType.fileURL], isTargeted: nil) { providers in
-            // Disable drop when used as the search sheet
+            // EN: Disable page-wide drop when in sheet mode. TR: Sheet modundayken sayfa geneli bırakmayı kapat.
             guard !showHeader else { return false }
             return handleCSVDrop(providers: providers)
         }
         .sheet(isPresented: $showingImportPanel) {
+            // EN: File chooser for CSV import. TR: CSV içe aktarımı için dosya seçici.
             PlaylistCSVImportView(youtubeAPI: youtubeAPI, isPresented: $showingImportPanel)
         }
         // When user starts playback from the search results, close the search panel immediately
         .onReceive(NotificationCenter.default.publisher(for: .openPlaylistModeOverlay)) { _ in
+            // EN: Close search sheet on overlay open. TR: Panel açılınca arama sheet’ini kapat.
             if showHeader { dismiss() }
         }
         .onReceive(NotificationCenter.default.publisher(for: .openPlaylistMode)) { _ in
+            // EN: Close search sheet on playlist mode open. TR: Playlist modu açılınca arama sheet’ini kapat.
             if showHeader { dismiss() }
         }
         .onReceive(NotificationCenter.default.publisher(for: .startAudioPlaylist)) { _ in
+            // EN: Close search sheet on audio playlist start. TR: Ses playlisti başlayınca arama sheet’ini kapat.
             if showHeader { dismiss() }
         }
     }
@@ -187,16 +190,16 @@ struct PlaylistSearchView: View {
 // MARK: - CSV Drop Handling
 extension PlaylistSearchView {
     private func handleCSVDrop(providers: [NSItemProvider]) -> Bool {
-    // Only enable CSV import via drop on the playlists panel, not in the search sheet
+        // EN: Only allow drop-import on the Playlists page, not in sheet mode. TR: İçe aktarmayı sadece Playlists sayfasında (sheet değil) etkinleştir.
     if showHeader { return false }
         guard let provider = providers.first else { return false }
         _ = provider.loadObject(ofClass: URL.self) { url, error in
             guard let url = url else { return }
             if url.pathExtension.lowercased() == "csv" {
                 if let content = try? String(contentsOf: url, encoding: .utf8) {
-                    // Dayanıklı çözümleme: her satırdaki tüm alanları tarayıp URL/ID çıkar
+                    // EN: Robust parse: scan all fields in each line for URL/ID tokens. TR: Dayanıklı çözümleme: her satırda URL/ID belirteçlerini tara.
                     let tokens = robustCSVTokenize(content: content)
-                    // Dosya adını playlist adı olarak kullanmak için özel token ekle
+                    // EN: Inject filename token to use as playlist name. TR: Dosya adını playlist adı olarak kullanmak için belirteç ekle.
                     let filename = url.deletingPathExtension().lastPathComponent
                     let payload = ["__CSV_FILENAME__=\(filename)"] + tokens
                     DispatchQueue.main.async { youtubeAPI.importPlaylists(from: payload) }
@@ -206,11 +209,12 @@ extension PlaylistSearchView {
         return true
     }
 
-    /// CSV içeriğinden playlist/video token'larını güvenli şekilde çıkarır.
-    /// Algoritma: her satırı ; , veya tab’a göre böl, tüm alanlarda şu kalıpları ara:
-    ///  - YouTube URL ("youtu" içeriyorsa alanı ham olarak ekle)
-    ///  - Playlist ID (PL/LL/UU/OL/FL/WL/RD ile başlıyorsa)
-    ///  - Video ID (11 karakter, [A-Za-z0-9_-]{11})
+    /// EN: Extract playlist/video tokens from CSV safely.
+    /// TR: CSV içeriğinden playlist/video belirteçlerini güvenli çıkar.
+    /// EN: Algorithm: split by ; , or tab; then scan fields for:
+    ///  - YouTube URL (if contains "youtu")
+    ///  - Playlist ID (prefix PL/LL/UU/OL/FL/WL/RD)
+    ///  - Video ID (11 chars, [A-Za-z0-9_-]{11})
     private func robustCSVTokenize(content: String) -> [String] {
         var out = Set<String>()
         let lines = content.components(separatedBy: .newlines)
@@ -225,12 +229,12 @@ extension PlaylistSearchView {
                 token = token.trimmingCharacters(in: CharacterSet(charactersIn: "\"'"))
                 if token.isEmpty { continue }
                 let lower = token.lowercased()
-                // YouTube URL alanını doğrudan ekleyelim (ileride extract* fonksiyonları temizler)
+                // EN: Keep YouTube URLs verbatim (upstream will normalize). TR: YouTube URL'leri doğrudan ekle (yukarıda normalize edilir).
                 if lower.contains("youtu.be") || lower.contains("youtube.com") {
                     out.insert(token)
                     continue
                 }
-                // Playlist ID kalıbı
+                // EN: Playlist ID pattern check. TR: Playlist ID deseni kontrolü.
                 if token.count >= 2 {
                     let prefixes = ["PL","LL","UU","OL","FL","RD"]
                     if prefixes.contains(where: { token.hasPrefix($0) }) || token == "WL" {
@@ -238,7 +242,7 @@ extension PlaylistSearchView {
                         continue
                     }
                 }
-                // 11 karakterlik video ID
+                // EN: Video ID of 11 chars via regex. TR: Regex ile 11 karakterlik video ID.
                 if token.count == 11, let re = idRegex {
                     let ns = token as NSString
                     if re.firstMatch(in: token, range: NSRange(location: 0, length: ns.length)) != nil {

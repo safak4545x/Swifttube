@@ -1,19 +1,7 @@
 /*
- File Overview (EN)
- Purpose: Shorts page rendering a vertical, swipeable experience for short-form videos with optional comments overlay and controls.
- Key Responsibilities:
- - Display shorts feed and handle current index
- - Integrate ShortsPlayerView for playback and controls (mute, repeat)
- - Optionally show/hide comments panel for the active short
- Used By: MainContentView when Shorts is selected.
-
- Dosya Özeti (TR)
- Amacı: Kısa videolar için dikey, kaydırılabilir deneyim sunan Shorts sayfası; yorum katmanı ve kontrollerle birlikte.
- Ana Sorumluluklar:
- - Shorts akışını göstermek ve aktif indeksi yönetmek
- - Oynatma ve kontroller için ShortsPlayerView ile bütünleşmek (sessiz, tekrar vb.)
- - Aktif kısa için yorum panelini isteğe bağlı göster/gizle
- Nerede Kullanılır: MainContentView’de Shorts seçiliyken.
+ Overview / Genel Bakış
+ EN: Vertical swipeable Shorts page with playback and optional comments panel.
+ TR: Oynatma ve isteğe bağlı yorum paneliyle dikey kaydırmalı Shorts sayfası.
 */
 
 import SwiftUI
@@ -51,7 +39,7 @@ struct ShortsView: View {
 
     var body: some View {
         HStack(spacing: 0) {
-            // Video bölümü (sol taraf)
+            // EN: Video area (left), snap-scrolling managed manually. TR: Video alanı (sol), snap kaydırma elle yönetilir.
             GeometryReader { geometry in
                 ScrollViewReader { proxy in
                     ScrollView(.vertical, showsIndicators: false) {
@@ -105,7 +93,7 @@ struct ShortsView: View {
                         }
                     }
                     .frame(maxWidth: .infinity, alignment: .center)
-                    .scrollDisabled(true) // Kendi geçişimizi yönetiyoruz (snap)
+                    .scrollDisabled(true) // EN: Disable native scroll to implement snap. TR: Snap için yerel kaydırmayı kapat.
                     .onChange(of: currentShortsIndex) { _, newIndex in
                         print("➡️ Shorts index changed ->", newIndex)
                         // Önceki videonun player'ını tamamen serbest bırak (reset)
@@ -122,7 +110,7 @@ struct ShortsView: View {
                         withAnimation(.easeInOut(duration: 0.22)) {
                             proxy.scrollTo(newIndex, anchor: .top)
                         }
-                        // Odağı tüm oynatıcılara yayınla
+                        // EN: Broadcast focus to all players. TR: Odağı tüm oynatıcılara yayınla.
                         if youtubeAPI.shortsVideos.indices.contains(newIndex) {
                             NotificationCenter.default.post(name: .shortsFocusVideoId, object: nil, userInfo: ["videoId": youtubeAPI.shortsVideos[newIndex].id])
                         } else {
@@ -145,7 +133,7 @@ struct ShortsView: View {
                         } else {
                             print("ℹ️ ShortsView onAppear -> reuse existing shorts count=\(youtubeAPI.shortsVideos.count) loading=\(youtubeAPI.isLoading)")
                         }
-                        // İlk konuma git
+                        // EN: Jump to initial position. TR: Başlangıç konumuna git.
                         DispatchQueue.main.async {
                             proxy.scrollTo(currentShortsIndex, anchor: .top)
                         }

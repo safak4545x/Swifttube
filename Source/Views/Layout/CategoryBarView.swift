@@ -1,44 +1,46 @@
 /*
- File Overview (EN)
- Purpose: Top category bar on Home page for selecting custom categories and triggering content refresh.
- Key Responsibilities:
- - Display available custom categories and highlight the active one
- - Notify YouTubeAPIService to fetch videos for the selected category
- - Present a compact, sticky header-like UI
- Used By: MainContentView (Home page).
-
- Dosya Özeti (TR)
- Amacı: Ana sayfadaki üst kategori barı; özel kategorileri seçmek ve içeriği yenilemek için kullanılır.
- Ana Sorumluluklar:
- - Mevcut özel kategorileri göstermek ve aktif olanı vurgulamak
- - Seçime göre YouTubeAPIService'e video çekimi tetiklemek
- - Kompakt, sabit başlık benzeri bir UI sunmak
- Nerede Kullanılır: MainContentView (Ana sayfa).
+ Overview / Genel Bakış
+ EN: Top category bar on Home, listing custom categories, with scroll controls and an editor sheet.
+ TR: Ana sayfada üst kategori çubuğu; özel kategorileri listeler, kaydırma kontrolleri ve düzenleyici içerir.
 */
 
+// EN: SwiftUI for UI components. TR: UI bileşenleri için SwiftUI.
 import SwiftUI
 
+// EN: Horizontal chips for Home and custom categories with scrolling and editing. TR: Home ve özel kategoriler için yatay çipler, kaydırma ve düzenleme.
 struct CategoryBarView: View {
+    // EN: Localization helper for UI strings. TR: Arayüz metinleri için yerelleştirme yardımcısı.
     @EnvironmentObject var i18n: Localizer
+    // EN: API facade exposing categories and fetch methods. TR: Kategorileri ve fetch metodlarını sunan API katmanı.
     @ObservedObject var youtubeAPI: YouTubeAPIService
+    // EN: Current sidebar selection (affects visibility/active state). TR: Geçerli yan menü seçimi (görünürlüğü/aktifi etkiler).
     let selectedSidebarId: String
 
+    // EN: Current scroll anchor index (Home=0, customs=1..N). TR: Geçerli kaydırma çıpası indeksi (Home=0, özel=1..N).
     @State private var scrollPosition: Int = 0
+    // EN: Whether to show left/right scroll buttons. TR: Sol/sağ kaydırma düğmeleri görünsün mü.
     @State private var showScrollButtons: Bool = false
+    // EN: Visible scroll view width tracker. TR: Görünür kaydırma alanı genişliği takibi.
     @State private var scrollViewWidth: CGFloat = 0
+    // EN: Total content width tracker. TR: Toplam içerik genişliği takibi.
     @State private var contentWidth: CGFloat = 0
+    // EN: Hovering state for left overlay button. TR: Sol örtü düğmesi hover durumu.
     @State private var isHoveringLeftArea: Bool = false
+    // EN: Hovering state for right overlay button. TR: Sağ örtü düğmesi hover durumu.
     @State private var isHoveringRightArea: Bool = false
+    // EN: Controls visibility of category editor sheet. TR: Kategori düzenleyici sayfasının görünürlüğü.
     @State private var showEditor: Bool = false
+    // EN: Working copy for create/edit category. TR: Oluştur/düzenle için çalışma kopyası.
     @State private var draft: CustomCategory = CustomCategory(name: "", primaryKeyword: "")
 
     var body: some View {
+        // EN: Hide on pages where categories are irrelevant. TR: Kategorilerin gereksiz olduğu sayfalarda gizle.
         Group {
             if shouldHideCategory {
                 Color.clear.frame(height: 0).opacity(0)
             } else {
                 ZStack(alignment: .center) {
-                    // Titlebar benzeri materyal ve in-window blur
+                    // EN: Titlebar-like material + bottom hairline. TR: Başlık benzeri materyal + alt çizgi.
                     VisualEffectView(material: .titlebar, blendingMode: .withinWindow)
                         .overlay(alignment: .bottom) {
                             Rectangle()
@@ -46,13 +48,13 @@ struct CategoryBarView: View {
                                 .frame(height: 0.5)
                         }
 
-                    // Kategoriler scroll view'i (Home + Custom categories)
+                    // EN: Horizontal scroll of Home + custom categories. TR: Home + özel kategoriler için yatay kaydırma.
                     ScrollViewReader { proxy in
                         ScrollView(.horizontal, showsIndicators: false) {
                             HStack(spacing: 12) {
-                                // Home static button
+                                // EN: Home chip triggers recommended feed. TR: Home çipi önerilen akışı tetikler.
                                 Button(action: {
-                                    // Home: analyze watch history and recommend similar videos
+                                    // EN: Ask API to build home recommendations. TR: API'den ana sayfa önerileri iste.
                                     youtubeAPI.fetchHomeRecommendations()
                                     youtubeAPI.selectedCustomCategoryId = nil
                                 }) {
@@ -83,10 +85,11 @@ struct CategoryBarView: View {
                                 .buttonStyle(.plain)
                                 .id(0)
 
-                                // User custom categories
+                                // EN: User-defined category chips. TR: Kullanıcı tanımlı kategori çipleri.
                                 ForEach(Array(youtubeAPI.customCategories.enumerated()), id: \ .element.id) { index, custom in
                                     let isActive = youtubeAPI.selectedCustomCategoryId == custom.id
                                     Button(action: {
+                                        // EN: Fetch videos for selected custom category. TR: Seçilen özel kategori için videoları çek.
                                         youtubeAPI.fetchVideos(for: custom)
                                     }) {
                                         HStack(spacing: 6) {
@@ -113,6 +116,7 @@ struct CategoryBarView: View {
                                     }
                                     .buttonStyle(.plain)
                                     .contextMenu {
+                                        // EN: Delete selected category. TR: Seçilen kategoriyi sil.
                                         Button(role: .destructive) {
                                             if let i = youtubeAPI.customCategories.firstIndex(of: custom) {
                                                 youtubeAPI.customCategories.remove(at: i)
@@ -120,6 +124,7 @@ struct CategoryBarView: View {
                                         } label: {
                                             Label(i18n.t(.delete), systemImage: "trash")
                                         }
+                                        // EN: Open editor with current values. TR: Mevcut değerlerle düzenleyiciyi aç.
                                         Button {
                                             draft = custom
                                             showEditor = true
@@ -130,7 +135,7 @@ struct CategoryBarView: View {
                                     .id(index + 1)
                                 }
 
-                                // Plus button
+                                // EN: New custom category. TR: Yeni özel kategori.
                                 Button(action: {
                                     draft = CustomCategory(name: "", primaryKeyword: "")
                                     showEditor = true
@@ -143,7 +148,7 @@ struct CategoryBarView: View {
                                 .buttonStyle(.plain)
                             }
                             .padding(.horizontal, 8)
-                            // İçerik genişliğini ölç
+                            // EN: Measure content width to decide showing scroll buttons. TR: Kaydırma düğmelerini belirlemek için içerik genişliğini ölç.
                             .background(GeometryReader { geometry in
                                 Color.clear
                                     .onAppear { updateContentWidth(geometry.size.width) }
@@ -152,7 +157,7 @@ struct CategoryBarView: View {
                                     }
                             })
                         }
-                        // ScrollView görünür genişliğini ölç
+                        // EN: Measure visible scroll area width. TR: Görünür kaydırma alanı genişliğini ölç.
                         .background(GeometryReader { geometry in
                             Color.clear
                                 .onAppear { updateScrollViewWidth(geometry.size.width, proxy: proxy) }
@@ -169,10 +174,10 @@ struct CategoryBarView: View {
                             }
                         }
                         .onChange(of: youtubeAPI.selectedCustomCategoryId) { _, _ in
-                            // keep current position; optionally center active button
+                            // EN: Keep current position; may recentre later. TR: Mevcut konumu koru; gerekirse ortalanır.
                         }
 
-                        // Scroll butonları
+                        // EN: Left scroll overlay button. TR: Sol kaydırma örtü düğmesi.
                         .overlay(alignment: .leading) {
                             if showScrollButtons && scrollPosition > 0 {
                                 HStack(spacing: 0) {
@@ -201,6 +206,7 @@ struct CategoryBarView: View {
                                 }
                             }
                         }
+                        // EN: Right scroll overlay button. TR: Sağ kaydırma örtü düğmesi.
                         .overlay(alignment: .trailing) {
                             if showScrollButtons {
                                 HStack(spacing: 0) {
@@ -224,7 +230,7 @@ struct CategoryBarView: View {
                                 .frame(width: 50)
                                 .padding(.trailing, 8)
                                 .onHover { hovering in
-                                    // Total scrollable items: Home (0) + custom categories (1..N)
+                                    // EN: Total scrollable = Home(0) + customs(1..N). TR: Toplam kaydırılabilir = Home(0) + özel(1..N).
                                     let lastIndex = max(0, youtubeAPI.customCategories.count)
                                     if showScrollButtons && scrollPosition < lastIndex { isHoveringRightArea = hovering }
                                 }
@@ -235,40 +241,46 @@ struct CategoryBarView: View {
                 .frame(height: 32)
                 .zIndex(1)
                 .sheet(isPresented: $showEditor) {
+                    // EN: Modal editor to create/edit a custom category. TR: Özel kategori oluştur/düzenle için modal editör.
                     editorView
                 }
             }
         }
     }
 
+    // EN: Scroll left by a fixed number of items. TR: Sabit sayıda öğe sola kaydır.
     private func scrollLeft() {
         let newPosition = max(0, scrollPosition - 3)
         scrollPosition = newPosition
     }
 
+    // EN: Scroll right by a fixed number of items. TR: Sabit sayıda öğe sağa kaydır.
     private func scrollRight() { scrollPosition = scrollPosition + 3 }
 
+    // EN: Show scroll buttons only when content overflows. TR: İçerik taşınca kaydırma düğmelerini göster.
     private func updateScrollButtonVisibility() {
         showScrollButtons = contentWidth > scrollViewWidth
     }
 
-    // Tekrarlayan genişlik güncellemelerini sadeleştir
+    // EN: Simplified width updates; recompute button visibility. TR: Genişlik güncellemesini sadeleştir; düğme görünürlüğünü hesapla.
     private func updateContentWidth(_ newWidth: CGFloat) {
         contentWidth = newWidth
         updateScrollButtonVisibility()
     }
 
+    // EN: Track visible width and center active chip after slight delay. TR: Görünür genişliği takip et ve kısa gecikmeyle aktif çipi ortala.
     private func updateScrollViewWidth(_ newWidth: CGFloat, proxy: ScrollViewProxy) {
         scrollViewWidth = newWidth
         updateScrollButtonVisibility()
-        // Genişlik değişiminden kısa süre sonra aktif kategoriye merkezle
+        // EN: Slight delay to allow layout completion. TR: Yerleşimin tamamlanması için kısa gecikme.
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
             scrollToSelectedCategory(proxy: proxy)
         }
     }
 
+    // EN: Scroll to selected custom category (or Home). TR: Seçili özel kategoriye (veya Home'a) kaydır.
     private func scrollToSelectedCategory(proxy: ScrollViewProxy) {
-        // Home has id 0, custom chips have ids starting from 1
+        // EN: Home id=0; custom chips start at 1. TR: Home id=0; özel çipler 1'den başlar.
         let targetIndex: Int = {
             if let selId = youtubeAPI.selectedCustomCategoryId,
                let idx = youtubeAPI.customCategories.firstIndex(where: { $0.id == selId }) {
@@ -280,6 +292,7 @@ struct CategoryBarView: View {
         scrollPosition = targetIndex
     }
 
+    // EN: Hide category bar for feeds where it doesn't apply. TR: Uygulanmayan akışlarda kategori barını gizle.
     private var shouldHideCategory: Bool {
         selectedSidebarId == "https://www.youtube.com/feed/subscriptions" ||
         selectedSidebarId == "https://www.youtube.com/shorts" ||
@@ -287,11 +300,13 @@ struct CategoryBarView: View {
     }
 
     // MARK: - Editor Sheet
+    // EN: Category editor UI with validation and color options. TR: Doğrulama ve renk seçenekleri olan kategori düzenleyici UI.
     private var editorView: some View {
         VStack(alignment: .leading, spacing: 12) {
             Text(i18n.t(.customCategoryNewTitle))
                 .font(.headline)
             HStack(spacing: 8) {
+                // EN: Emoji prefix picker. TR: Emoji önek seçici.
                 Menu {
                     let choices = ["🔥","⭐️","🎯","🎵","🎮","⚽️","📈","🎬","📰","🧪","🧠","📚","🍿","🚀","💡"]
                     ForEach(choices, id: \.self) { e in
@@ -306,23 +321,27 @@ struct CategoryBarView: View {
                 }
                 .menuStyle(.borderlessButton)
                 .menuIndicator(.hidden)
-                .fixedSize() // Menü sadece içeriği kadar yer kaplasın
+                .fixedSize() // EN: Menu sizes to content. TR: Menü içerik kadar yer kaplar.
                 .help(i18n.t(.customCategoryEmoji))
+                // EN: Category name input. TR: Kategori adı girişi.
                 TextField(i18n.t(.customCategoryName), text: $draft.name)
-                    .frame(maxWidth: .infinity) // İsim alanı kalan genişliği doldursun
+                    .frame(maxWidth: .infinity) // EN: Fill remaining width. TR: Kalan genişliği doldur.
             }
+            // EN: Primary keyword (single word) required. TR: Birincil anahtar (tek kelime) zorunlu.
             TextField(i18n.t(.customCategoryPrimary), text: $draft.primaryKeyword)
-            // Validation: primary must be single word
+            // EN: Validation feedback for multi-word primary. TR: Çok kelimeli birincil için uyarı.
             if draft.primaryKeyword.trimmingCharacters(in: .whitespacesAndNewlines).contains(where: { $0.isWhitespace }) {
                 Text(i18n.t(.customCategoryPrimarySingleWord))
                     .font(.caption)
                     .foregroundColor(.red)
             }
+            // EN: Optional secondary keyword. TR: Opsiyonel ikincil anahtar.
             TextField(i18n.t(.customCategorySecondary), text: Binding(
                 get: { draft.secondaryKeyword ?? "" },
                 set: { draft.secondaryKeyword = $0.isEmpty ? nil : $0 }
             ))
             HStack {
+                // EN: Optional third/fourth keywords. TR: Opsiyonel üçüncü/dördüncü anahtarlar.
                 TextField(i18n.t(.customCategoryThird), text: Binding(
                     get: { draft.thirdKeyword ?? "" },
                     set: { draft.thirdKeyword = $0.isEmpty ? nil : $0 }
@@ -333,6 +352,7 @@ struct CategoryBarView: View {
                 ))
             }
             HStack {
+                // EN: Date filter for query building. TR: Sorgu oluşturma için tarih filtresi.
                 Picker(i18n.t(.date), selection: $draft.dateFilter) {
                     ForEach(CustomDateFilter.allCases) { d in
                         Text(i18n.t(d.localizationKey)).tag(d)
@@ -342,6 +362,7 @@ struct CategoryBarView: View {
             HStack {
                 Text(i18n.t(.customCategoryColor))
                 let colors = ["blue","green","red","orange","purple","pink","teal","yellow","brown"]
+                // EN: Optional color selection mapped to Localizer keys. TR: Localizer anahtarlarına eşlenen opsiyonel renk seçimi.
                 Picker(i18n.t(.customCategoryColor), selection: Binding(
                     get: { draft.colorName ?? "" },
                     set: { draft.colorName = $0.isEmpty ? nil : $0 }
@@ -367,12 +388,14 @@ struct CategoryBarView: View {
                 }.labelsHidden()
             }
             HStack {
+                // EN: Reset draft to defaults. TR: Taslağı varsayılanlara sıfırla.
                 Button(i18n.t(.reset)) {
                     draft = CustomCategory(name: "", primaryKeyword: "")
                 }
                 Spacer()
+                // EN: Validate then save and fetch videos. TR: Doğrula, kaydet ve videoları çek.
                 Button(i18n.t(.customCategoryConfirm)) {
-                    // Basic validation
+                    // EN: Basic validation for name and single-word primary. TR: Ad ve tek kelimelik birincil için temel doğrulama.
                     let nameOK = !draft.name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
                     let primary = draft.primaryKeyword.trimmingCharacters(in: .whitespacesAndNewlines)
                     let isSingleWord = !primary.isEmpty && !primary.contains(where: { $0.isWhitespace })

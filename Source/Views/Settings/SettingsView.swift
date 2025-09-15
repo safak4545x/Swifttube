@@ -1,23 +1,12 @@
 /*
- File Overview (EN)
- Purpose: Settings window with tabbed sections (General, Player/Appearance, About) for API key, preferences, and info.
- Key Responsibilities:
- - Render macOS-native tab view and adjust window size per tab
- - General: API key, data management, app behavior toggles
- - Player/Appearance: playback options, UI tweaks; About: app information
- Used By: Settings entry points from sidebar/menu and command palette.
-
- Dosya Özeti (TR)
- Amacı: API anahtarı, tercihler ve uygulama bilgileri için sekmeli (Genel, Oynatıcı/Görünüm, Hakkında) ayarlar penceresi.
- Ana Sorumluluklar:
- - macOS yerel sekme görünümünü sunmak ve sekmeye göre pencere boyutunu ayarlamak
- - Genel: API anahtarı, veri yönetimi, davranış anahtarları
- - Oynatıcı/Görünüm: oynatma seçenekleri, arayüz ayarları; Hakkında: uygulama bilgileri
- Nerede Kullanılır: Kenar çubuğu/menü ve komut paletindeki ayarlar giriş noktaları.
+ Overview / Genel Bakış
+ EN: Settings window with tabs for General, Appearance, and About; manages API key, caches, preferences, and player UI.
+ TR: Genel, Görünüm ve Hakkında sekmelerinden oluşan ayarlar; API anahtarı, önbellek, tercihler ve oynatıcı arayüzünü yönetir.
 */
 
 import SwiftUI
 
+// EN: Root settings view with macOS TabView. TR: macOS TabView kullanan kök ayarlar görünümü.
 struct SettingsView: View {
     #if os(macOS)
     private enum Tabs: Hashable {
@@ -37,26 +26,30 @@ struct SettingsView: View {
     var settings: some View {
         #if os(macOS)
         TabView(selection: $selection) {
+            // EN: App behavior, language, cache, and API key. TR: Uygulama davranışı, dil, önbellek ve API anahtarı.
             GeneralSettings()
                 .padding(.leading, 20)
                 .tabItem { Label(i18n.t(.generalTab), systemImage: "gear") }
                 .tag(Tabs.general)
 
+            // EN: Player UI visibility toggles. TR: Oynatıcı arayüzü görünürlük anahtarları.
             PlayerSettings()
                 .padding(.leading, 20)
                 .tabItem { Label(i18n.t(.appearanceTab), systemImage: "play.rectangle") }
                 .tag(Tabs.appearance)
 
+            // EN: Static app info. TR: Statik uygulama bilgisi.
             AboutSettings()
                 .padding(.leading, 20)
                 .tabItem { Label(i18n.t(.aboutTab), systemImage: "info.circle") }
                 .tag(Tabs.about)
         }
-    .frame(width: 660, height: windowHeight)
+        .frame(width: 660, height: windowHeight)
         #endif
     }
     
     #if os(macOS)
+    // EN: Keep uniform window height per tab. TR: Her sekme için tekdüze pencere yüksekliği.
     private var windowHeight: Double {
         switch selection {
         case .general:
@@ -70,6 +63,7 @@ struct SettingsView: View {
     #endif
 }
 
+// EN: General app settings (region/language/cache/API key). TR: Genel ayarlar (bölge/dil/önbellek/API anahtarı).
 struct GeneralSettings: View {
     @EnvironmentObject var api: YouTubeAPIService
     @EnvironmentObject private var i18n: Localizer
@@ -92,6 +86,7 @@ struct GeneralSettings: View {
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 20) {
+                // EN: Region picker affects feed localization. TR: Bölge seçimi akış yerelleştirmesini etkiler.
                 GroupBox(label: Label(i18n.t(.algorithmTabTitle), systemImage: "slider.horizontal.3")) {
                     VStack(alignment: .leading, spacing: 10) {
                         Text(i18n.t(.algorithmLocationDesc))
@@ -115,6 +110,7 @@ struct GeneralSettings: View {
                     }
                     .padding(12)
                 }
+                // EN: App language picker and hint. TR: Uygulama dili seçici ve not.
                 GroupBox(label: Label(i18n.t(.languageGroupTitle), systemImage: "globe")) {
                     VStack(alignment: .leading, spacing: 10) {
                         Text(i18n.t(.languageAppLanguage))
@@ -132,6 +128,7 @@ struct GeneralSettings: View {
                     }
                     .padding(12)
                 }
+                // EN: Cache management and remember-tabs toggle. TR: Önbellek yönetimi ve sekmeleri hatırla anahtarı.
                 GroupBox(label: Label(i18n.t(.cacheTitle), systemImage: "internaldrive.fill")) {
                     VStack(alignment: .leading, spacing: 10) {
                         Text(i18n.t(.cacheDesc))
@@ -181,6 +178,7 @@ struct GeneralSettings: View {
                         Text(i18n.t(.confirmClearAllMessage))
                     }
                 }
+                // EN: API key entry, save/clear/paste actions, and status. TR: API anahtarı girişi, kaydet/temizle/yapıştır eylemleri ve durum.
                 GroupBox(label: Label(i18n.t(.apiKeyTitle), systemImage: "key.fill")) {
                     VStack(alignment: .leading, spacing: 10) {
                         Text(i18n.t(.apiKeyDesc))
@@ -256,6 +254,7 @@ struct GeneralSettings: View {
     }
 }
 
+// EN: Player/Appearance toggles for embedded YouTube UI elements. TR: Gömülü YouTube arayüz öğeleri için Oynatıcı/Görünüm anahtarları.
 struct PlayerSettings: View {
     @StateObject private var settings = PlayerAppearanceSettings()
     @EnvironmentObject private var i18n: Localizer
@@ -266,6 +265,7 @@ struct PlayerSettings: View {
                 VStack(alignment: .leading, spacing: 20) {
             GroupBox(label: Label(i18n.t(.appearanceTopSection), systemImage: "eye")) {
                         VStack(alignment: .leading, spacing: 6) {
+                // EN: Hide elements overlaying the video. TR: Video üzerinde görünen öğeleri gizle.
                 Text(i18n.t(.appearanceTopHelp))
                                 .font(.footnote)
                                 .foregroundColor(.secondary)
@@ -281,6 +281,7 @@ struct PlayerSettings: View {
                     }
             GroupBox(label: Label(i18n.t(.appearanceBottomSection), systemImage: "rectangle.on.rectangle")) {
                         VStack(alignment: .leading, spacing: 6) {
+                // EN: Hide controls within the player chrome. TR: Oynatıcı çerçevesindeki kontrolleri gizle.
                 Text(i18n.t(.appearanceBottomHelp))
                                 .font(.footnote)
                                 .foregroundColor(.secondary)
@@ -306,11 +307,13 @@ struct PlayerSettings: View {
                     Text(i18n.t(.restartHint))
                         .font(.caption)
                         .foregroundColor(.secondary)
+                    // EN: Relaunch app to apply appearance toggles globally. TR: Görünüm anahtarlarını uygulanması için uygulamayı yeniden başlat.
                     Button { NSApp.terminate(nil) } label: {
                         Label(i18n.t(.restartApp), systemImage: "arrow.triangle.2.circlepath")
                     }
                     .buttonStyle(.borderedProminent)
                     Spacer()
+                    // EN: Restore defaults for all toggles. TR: Tüm anahtarları varsayılanlara döndür.
                     Button(role: .destructive) { settings.reset() } label: {
                         Label(i18n.t(.reset), systemImage: "arrow.counterclockwise")
                     }

@@ -1,32 +1,24 @@
-
 /*
- File Overview (EN)
- Purpose: Custom window control buttons (close/minimize/zoom) styled to match the app, typically used in custom title/header areas.
- Key Responsibilities:
- - Render macOS-like traffic light controls in SwiftUI
- - Provide hover/tint behaviors consistent with app theme
- Used By: Header/toolbar areas where default titlebar is customized.
-
- Dosya Özeti (TR)
- Amacı: Uygulama temasına uygun özelleştirilmiş pencere kontrol butonları (kapat/küçült/büyüt); genellikle başlık/üst bölgelerde kullanılır.
- Ana Sorumluluklar:
- - SwiftUI ile macOS trafik ışığı kontrollerini çizmek
- - Uygulama temasıyla uyumlu hover/renk davranışları sağlamak
- Nerede Kullanılır: Varsayılan başlık çubuğunun özelleştirildiği header/toolbar alanları.
+ Overview / Genel Bakış
+ EN: Custom header strip with reserved area for native macOS traffic lights and a sidebar toggle.
+ TR: Yerel macOS trafik ışıkları için ayrılmış alan ve kenar çubuğu anahtarı içeren özel başlık şeridi.
 */
 
+// EN: SwiftUI host for custom titlebar controls. TR: Özel başlık çubuğu kontrolleri için SwiftUI.
 import SwiftUI
 
+// EN: Shows reserved space and a sidebar toggle button. TR: Ayrılmış alan ve kenar çubuğu anahtarını gösterir.
 struct WindowControlsView: View {
+    // EN: Shared sidebar state for toggling visibility. TR: Görünürlüğü değiştirmek için paylaşılan kenar çubuğu durumu.
     @ObservedObject var sidebarState: SidebarState
     
     var body: some View {
         HStack {
-            // Apple'ın native traffic lights için alan - otomatik olarak görünecek
+            // EN: Reserved area for the window traffic lights. TR: Pencere trafik ışıkları için ayrılmış alan.
             Spacer()
-                .frame(width: 80) // Native traffic lights için reserved space
+                .frame(width: 80) // EN: Reserve horizontal space. TR: Yatay alan ayır.
             
-            // Sidebar toggle button - Apple style
+            // EN: Sidebar toggle button with animation. TR: Animasyonlu kenar çubuğu anahtar butonu.
             Button(action: {
                 withAnimation(.easeInOut(duration: 0.2)) {
                     sidebarState.toggle()
@@ -37,13 +29,13 @@ struct WindowControlsView: View {
                     .foregroundColor(.primary)
             }
             .buttonStyle(.plain)
-            .help("Toggle Sidebar")
+            .help("Toggle Sidebar") // EN: Tooltip for accessibility. TR: Erişilebilirlik için ipucu.
             
             Spacer()
         }
-        .frame(height: 28)
+        .frame(height: 28) // EN: Compact title strip height. TR: Kompakt başlık şeridi yüksekliği.
         .background(
-            // Native titlebar material
+            // EN: Native titlebar material for visual consistency. TR: Görsel tutarlılık için yerel başlık materyali.
             VisualEffectView(material: .titlebar, blendingMode: .behindWindow)
         )
     }

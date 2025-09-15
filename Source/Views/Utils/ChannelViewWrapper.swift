@@ -1,18 +1,8 @@
 
 /*
- File Overview (EN)
- Purpose: Adapter/wrapper that embeds ChannelView with required environment and bindings from parent contexts.
- Key Responsibilities:
- - Bridge environment objects and callbacks into ChannelView
- - Simplify usage in sheets/overlays
- Used By: SheetManagementView and panels that show channel details.
-
- Dosya Özeti (TR)
- Amacı: ChannelView'i üst bağlamlardan gelen ortam ve binding’lerle birlikte saran adaptör.
- Ana Sorumluluklar:
- - Ortam nesneleri ve geri çağrıları ChannelView'e köprülemek
- - Sheet/overlay içinde kullanımı basitleştirmek
- Nerede Kullanılır: Kanal detay panelini gösteren sheet/panel bileşenlerinde.
+ Overview / Genel Bakış
+ EN: Thin wrapper to show ChannelView in sheets/overlays with proper environment.
+ TR: ChannelView'i sheet/overlay içinde doğru ortamla sunan ince sarmalayıcı.
 */
 
 import SwiftUI
@@ -25,14 +15,14 @@ struct ChannelViewWrapper: View {
     
     var body: some View {
         ZStack(alignment: .topTrailing) {
-            // Arka plan
+            // EN: Overlay background. TR: Overlay arka planı.
             Color(.windowBackgroundColor)
                 .edgesIgnoringSafeArea(.all)
             
-            // Kanal içeriği - video paneli ile aynı strateji
+            // EN: Main channel content, mirroring the video panel strategy. TR: Kanal içeriği, video panel stratejisiyle aynı.
             ChannelView(channel: channel, youtubeAPI: youtubeAPI)
             
-            // Kapatma butonu - video panelindeki ile tamamen aynı
+            // EN: Close button, consistent with video panel. TR: Video paneliyle tutarlı kapatma düğmesi.
             Button(action: onDismiss) {
                 Image(systemName: "xmark.circle.fill")
                     .font(.system(size: 20))

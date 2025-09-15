@@ -1,17 +1,7 @@
 /*
- File Overview (EN)
- Purpose: Reusable shimmer/skeleton loading effect for placeholders while content is loading.
- Key Responsibilities:
- - Provide animated gradient shimmer overlay
- - Easy-to-apply modifier-style API for views
- Used By: Video cards, list rows, and stats while fetching.
-
- Dosya Özeti (TR)
- Amacı: İçerik yüklenirken iskelet/şeritli yükleme efekti sağlayan yeniden kullanılabilir bileşen.
- Ana Sorumluluklar:
- - Animasyonlu degrade shimmer kaplaması sunmak
- - Görünümlere kolayca uygulanabilir modifier tarzı API sağlamak
- Nerede Kullanılır: Video kartları, liste satırları ve istatistik alanları.
+ Overview / Genel Bakış
+ EN: Reusable shimmer/skeleton loading effect as a view modifier.
+ TR: Görünüm değiştiricisi olarak yeniden kullanılabilir shimmer/iskelet efekti.
 */
 
 import SwiftUI
@@ -50,7 +40,7 @@ struct ShimmerModifier: ViewModifier {
                     Animation.linear(duration: 1.5)
                         .repeatForever(autoreverses: false)
                 ) {
-                    phase = 400
+                    phase = 400 // EN: Sweep across horizontally. TR: Yatay tarama mesafesi.
                 }
             }
     }

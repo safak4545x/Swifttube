@@ -1,30 +1,24 @@
 /*
- File Overview (EN)
- Purpose: Onboarding/input form to paste a YouTube channel URL, resolve minimal channel info, and add to subscriptions.
- Key Responsibilities:
- - Validate and normalize user-pasted URLs; surface basic errors
- - Ask UserService to extract channelId and fetch minimal channel info
- - Provide a confirm action to persist subscription and update UI
- Used By: First-run experience and add-subscription flows.
-
- Dosya Özeti (TR)
- Amacı: YouTube kanal URL’si yapıştırma formu; temel kanal bilgisini çözüp aboneliklere eklemek.
- Ana Sorumluluklar:
- - Kullanıcı URL’sini doğrulayıp normalize etmek; temel hataları göstermek
- - UserService’ten channelId çıkarma ve temel kanal bilgisini alma isteği yapmak
- - Aboneliği kalıcı kılmak ve arayüzü güncellemek için onay eylemi sunmak
- Nerede Kullanılır: İlk kurulum ve abonelik ekleme akışları.
+ Overview / Genel Bakış
+ EN: Input form to paste a channel URL or import a CSV of channels; adds channels to subscriptions.
+ TR: Kanal URL’si yapıştırma veya CSV ile kanal içe aktarma formu; kanalları aboneliklere ekler.
 */
 
+// EN: SwiftUI for UI; UTType for drag & drop. TR: UI için SwiftUI; sürükle-bırak için UTType.
 import SwiftUI
 import UniformTypeIdentifiers
 
+// EN: Lets users add a channel via URL or CSV list. TR: Kullanıcıların URL veya CSV listesiyle kanal eklemesini sağlar.
 struct UserChannelInputView: View {
     @EnvironmentObject var i18n: Localizer
+    // EN: Text binding for manual URL entry. TR: Manuel URL girişi için metin binding'i.
     @Binding var userChannelURL: String
+    // EN: API service to process channels. TR: Kanalları işleyen API servisi.
     @ObservedObject var youtubeAPI: YouTubeAPIService
+    // EN: Callbacks for submit/cancel actions. TR: Gönder/iptal eylemleri için geri çağrılar.
     let onSubmit: (String) -> Void
     let onCancel: () -> Void
+    // EN: Focus and drag/drop states. TR: Odak ve sürükle/bırak durumları.
     @FocusState private var isTextFieldFocused: Bool
     @State private var isDragOver = false
     @State private var isProcessingCSV = false
@@ -33,18 +27,20 @@ struct UserChannelInputView: View {
     @State private var csvFileName = ""
     @State private var csvChannelCount = 0
     @State private var processProgress: Double = 0.0
+    // EN: Collected channel URLs from CSV. TR: CSV'den toplanan kanal URL'leri.
     @State private var csvChannelURLs: [String] = []
     
     var body: some View {
         VStack(spacing: 20) {
             // Başlık
+            // EN: Dialog title. TR: Diyalog başlığı.
             Text(i18n.t(.addChannel))
                 .font(.title2)
                 .fontWeight(.semibold)
                 .padding(.top, 20)
             
             VStack(spacing: 16) {
-                // CSV Dosya Yükleme Alanı
+                // EN: CSV drop zone for bulk channel import. TR: Toplu kanal içe aktarma için CSV bırakma alanı.
                 VStack(spacing: 12) {
                     Text(i18n.t(.subscriptions))
                         .font(.headline)
@@ -62,6 +58,7 @@ struct UserChannelInputView: View {
                             VStack(spacing: 8) {
                                 if isProcessingCSV {
                                     VStack(spacing: 8) {
+                                        // EN: Linear progress while processing. TR: İşleme sırasında doğrusal ilerleme.
                                         ProgressView(value: processProgress)
                                             .progressViewStyle(LinearProgressViewStyle())
                                             .frame(width: 200)
@@ -96,6 +93,7 @@ struct UserChannelInputView: View {
                                         
                                         // Debug bilgisi
                                         if !csvProcessMessage.isEmpty {
+                                            // EN: Debug status (optional) for drop feedback. TR: Bırakma geri bildirimi için (opsiyonel) hata durumu.
                                             Text("Status: \(csvProcessMessage)")
                                                 .font(.caption)
                                                 .foregroundColor(.red)
@@ -131,7 +129,7 @@ struct UserChannelInputView: View {
                         .foregroundColor(.gray.opacity(0.3))
                 }
                 
-                // Manuel URL Girişi
+                // EN: Manual single-channel URL entry. TR: Manuel tek kanal URL girişi.
                 VStack(alignment: .leading, spacing: 8) {
                     Text(i18n.t(.enterChannelURL))
                         .font(.subheadline)
@@ -146,6 +144,7 @@ struct UserChannelInputView: View {
                             }
                         }
                     
+                    // EN: Supported URL formats hint. TR: Desteklenen URL biçimleri ipucu.
                     VStack(alignment: .leading, spacing: 4) {
                         Text(i18n.t(.supportedFormats))
                             .font(.caption)
@@ -170,7 +169,7 @@ struct UserChannelInputView: View {
             
             Spacer()
             
-            // Butonlar
+            // EN: Action buttons for cancel/add. TR: İptal/ekle eylem butonları.
             HStack(spacing: 12) {
                 Button(i18n.t(.cancel)) {
                     onCancel()
@@ -198,7 +197,7 @@ struct UserChannelInputView: View {
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .background(Color(.windowBackgroundColor))
         .onAppear {
-            // TextField'a otomatik fokus
+            // EN: Auto-focus the input for quick paste. TR: Hızlı yapıştırma için otomatik odakla.
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
                 isTextFieldFocused = true
             }
@@ -214,7 +213,7 @@ struct UserChannelInputView: View {
         
         print("🔍 Provider type identifiers: \(provider.registeredTypeIdentifiers)")
         
-        // Önce UTType.fileURL ile dene
+        // EN: Try UTType.fileURL first. TR: Önce UTType.fileURL ile dene.
         if provider.hasItemConformingToTypeIdentifier(UTType.fileURL.identifier) {
             provider.loadItem(forTypeIdentifier: UTType.fileURL.identifier, options: nil) { (urlData, error) in
                 DispatchQueue.main.async {

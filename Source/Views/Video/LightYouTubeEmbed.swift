@@ -1,28 +1,18 @@
 
 /*
- File Overview (EN)
- Purpose: Lightweight wrapper around YouTubePlayerKit to reduce overhead, enable caching, and expose minimal control surface.
- Key Responsibilities:
- - Configure player with reduced UI; expose play/pause/seek/time updates
- - Provide thumbnail caching and quick retry hooks
- - Emit callbacks for readiness and errors
- Used By: VideoEmbedView and Shorts-related views.
-
- Dosya Özeti (TR)
- Amacı: Aşırı yükü azaltmak, önbelleği etkinleştirmek ve minimal kontrol yüzeyi sağlamak için YouTubePlayerKit etrafında hafif bir sarmalayıcı.
- Ana Sorumluluklar:
- - Azaltılmış UI ile oynatıcıyı yapılandırmak; oynat/duraklat/ara/zaman güncellemelerini dışarı vermek
- - Küçük görsel önbellekleme ve hızlı yeniden deneme kancaları sağlamak
- - Hazır olma ve hata geri çağrılarını yaymak
- Nerede Kullanılır: VideoEmbedView ve Shorts ile ilgili görünümler.
+ Overview / Genel Bakış
+ EN: Lightweight, WKWebView-based YouTube embed with minimal UI and a small controller surface.
+ TR: Minimal arayüzlü, küçük bir denetleyici yüzeyine sahip WKWebView tabanlı hafif YouTube gömme bileşeni.
 */
 
+// EN: SwiftUI + WebKit interop for a custom, controllable YT embed. TR: Özelleştirilebilir YT gömme için SwiftUI + WebKit birlikte çalışması.
 import SwiftUI
 import WebKit
 
 // A WKWebView that forwards scroll events to its next responders so that
 // the surrounding SwiftUI/NSScrollView keeps scrolling even when the mouse is
 // over the player (YouTube often captures wheel events for volume).
+// EN: WebView subclass forwarding vertical scroll to parent; can suppress context menu. TR: Dikey kaydırmayı ebeveyne ileten, bağlam menüsünü bastırabilen WebView alt sınıfı.
 final class PassthroughWKWebView: WKWebView {
     // When true, suppress the native right-click context menu entirely
     var disableContextMenu: Bool = false
@@ -91,6 +81,7 @@ final class PassthroughWKWebView: WKWebView {
 
 // Lightweight YouTube embed without YouTubePlayerKit to control WKWebView lifecycle.
 @MainActor
+// EN: Thin controller around the player/fallback iframe offering play/pause/seek/time. TR: Oynatıcı/fallback iframe etrafında oynat/duraklat/sar/zaman sunan ince denetleyici.
 final class LightYouTubeController: ObservableObject {
     fileprivate weak var webView: WKWebView?
     // Dynamic changes disabled – user must restart app for new appearance settings.
@@ -315,6 +306,7 @@ final class LightYouTubeController: ObservableObject {
     }
 }
 
+// EN: NSViewRepresentable wrapper that builds the WKWebView and injects the player HTML. TR: WKWebView oluşturan ve oynatıcı HTML’ini enjekte eden NSViewRepresentable sarmalayıcısı.
 struct LightYouTubeEmbed: NSViewRepresentable {
     let videoId: String
     let startSeconds: Double

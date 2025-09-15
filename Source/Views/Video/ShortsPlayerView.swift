@@ -1,25 +1,14 @@
 /*
- File Overview (EN)
- Purpose: Vertical Shorts player with mute/repeat controls, comment toggling, and overlay menu integration.
- Key Responsibilities:
- - Drive play/stop on focus changes; persist per-video volume/mute
- - Show retry/cached thumbnails and reduce system context menu interference
- - Emit navigation requests (next/prev) via Notifications
- Used By: ShortsView list and full-height single Shorts playback.
-
- Dosya Özeti (TR)
- Amacı: Sessiz/tekrar kontrolleri, yorum aç/kapat ve overlay menü entegrasyonu olan dikey Shorts oynatıcısı.
- Ana Sorumluluklar:
- - Odak değişimlerinde oynat/durdur; video başına ses/dilsiz durumunu kalıcı kılmak
- - Sistem bağlam menüsü etkisini azaltmak; yeniden dene/önbellekli küçük görselleri göstermek
- - Bildirimler ile ileri/geri gezinme istekleri yaymak
- Nerede Kullanılır: ShortsView listesi ve tam yükseklikte tek Shorts oynatma.
+ Overview / Genel Bakış
+ EN: Vertical Shorts player with focus-driven play/pause and simple lifecycle; integrates with notifications.
+ TR: Odakla tetiklenen oynat/duraklat ve basit yaşam döngüsü olan dikey Shorts oynatıcı; bildirimlerle entegre.
 */
 
+// EN: SwiftUI + YouTubePlayerKit for a dedicated Shorts player. TR: Shorts oynatıcı için SwiftUI + YouTubePlayerKit.
 import SwiftUI
 import YouTubePlayerKit
 
-// Shorts-specific player using YouTubePlayerKit (separate lifecycle & future customization)
+// EN: Shorts-specific player using YouTubePlayerKit (separate lifecycle). TR: YouTubePlayerKit tabanlı Shorts oynatıcı (ayrı yaşam döngüsü).
 struct ShortsPlayerView: View {
     let videoId: String
     @Binding var shouldPlay: Bool
@@ -32,7 +21,7 @@ struct ShortsPlayerView: View {
     init(videoId: String, shouldPlay: Binding<Bool>) {
         self.videoId = videoId
         self._shouldPlay = shouldPlay
-        // Minimal UI: kontrol barı & fullscreen butonu gizle, klavye kısayollarını kapat, ilgili videoları aynı kanalla sınırla
+        // EN: Minimal UI (no controls/fullscreen, disabled keyboard, related limited to same channel). TR: Minimal arayüz (kontrol/fullscreen yok, klavye kapalı, ilgili videolar aynı kanal).
         let ytParams = YouTubePlayer.Parameters(
             autoPlay: false, // manuel play kontrolü (safePlay) ile senkronize ediyoruz
             showControls: false,
@@ -47,7 +36,8 @@ struct ShortsPlayerView: View {
     }
 
     var body: some View {
-    YouTubePlayerView(player) { state in
+        // EN: Render state overlays while the underlying player initializes. TR: Oynatıcı başlarken durum katmanlarını göster.
+        YouTubePlayerView(player) { state in
             // State overlay (progress / error). Keep minimal to emphasize video.
             switch state {
             case .idle:
@@ -64,9 +54,10 @@ struct ShortsPlayerView: View {
             default:
                 Color.clear
             }
-    }
+        }
         .id(reloadToken)
         .clipShape(RoundedRectangle(cornerRadius: 12))
+        // EN: External focus toggles playback. TR: Harici odak değişimi oynatmayı değiştirir.
         .onChange(of: shouldPlay) { _, play in
             if destroyed {
                 if play { recreatePlayer(autoplay: true) }
@@ -76,6 +67,7 @@ struct ShortsPlayerView: View {
                 if play { await safePlay() } else { await safePause() }
             }
         }
+        // EN: Reset/destroy from global events. TR: Global olaylarla sıfırla/yok et.
         .onReceive(NotificationCenter.default.publisher(for: .shortsResetVideoId)) { note in
             guard let target = note.userInfo?["videoId"] as? String, target == videoId else { return }
             destroyPlayer()
@@ -93,12 +85,13 @@ struct ShortsPlayerView: View {
         Task { await safePause() }
         destroyed = true
         isReady = false
-    // Replace with an inert player (no source) so underlying WebView can release resources
-    player = YouTubePlayer() // source: nil
+        // EN: Swap to an inert player to let the WebView release resources. TR: WebView kaynaklarını bırakabilsin diye etkisiz oynatıcıya geç.
+        player = YouTubePlayer() // source: nil
         reloadToken = UUID()
     }
 
     private func recreatePlayer(autoplay: Bool) {
+        // EN: Recreate player with same params; optionally auto-play after a short delay. TR: Aynı parametrelerle oyuncuyu yeniden yarat; isteğe bağlı kısa gecikme ile otomatik oynat.
         let ytParams = YouTubePlayer.Parameters(
             autoPlay: false,
             showControls: false,

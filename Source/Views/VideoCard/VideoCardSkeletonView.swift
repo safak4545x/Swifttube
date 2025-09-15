@@ -1,19 +1,7 @@
 /*
- File Overview (EN)
- Purpose: Skeleton placeholder views for video cards to improve perceived performance during loads.
- Key Responsibilities:
- - Render shimmer placeholders matching the card layout
- - Keep shapes/lightweight to avoid layout shifts
- - Integrate with grid/list while data loads
- Used By: Home and search grids.
-
- Dosya Özeti (TR)
- Amacı: Yüklemeler sırasında algılanan performansı artırmak için video kartlarına yönelik iskelet yer tutucu görünümler.
- Ana Sorumluluklar:
- - Kart yerleşimine uygun parıltı (shimmer) yer tutucular çizmek
- - Yer değiştirmeleri önlemek için hafif ve sabit şekiller kullanmak
- - Veri yüklenirken grid/liste ile entegre olmak
- Nerede Kullanılır: Ana ve arama gridleri.
+ Overview / Genel Bakış
+ EN: Skeleton placeholders for cards to smooth loading states.
+ TR: Yükleme durumlarını yumuşatmak için kart iskelet yer tutucuları.
 */
 
 import SwiftUI
@@ -29,13 +17,13 @@ struct VideoCardSkeletonView: View {
                 .cornerRadius(12)
             
             VStack(alignment: .leading, spacing: 8) {
-                Rectangle()
+                Rectangle() // EN: Title line placeholder. TR: Başlık satırı yer tutucu.
                     .fill(Color.gray.opacity(0.2))
                     .frame(height: 20)
                     .shimmering()
                     .cornerRadius(4)
                 
-                Rectangle()
+                Rectangle() // EN: Meta line placeholder. TR: Meta satırı yer tutucu.
                     .fill(Color.gray.opacity(0.2))
                     .frame(height: 16)
                     .frame(maxWidth: 140)

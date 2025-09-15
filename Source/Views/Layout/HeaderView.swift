@@ -1,36 +1,33 @@
-
 /*
- File Overview (EN)
- Purpose: Reusable header area for sections/pages, hosting titles, actions, and optional controls consistent with the app's design.
- Key Responsibilities:
- - Present section/page titles and contextual action buttons
- - Keep spacing and visual style consistent across views
- Used By: Various pages requiring a styled header.
-
- Dosya Özeti (TR)
- Amacı: Sayfa/bölüm başlıkları, eylemler ve opsiyonel kontroller için yeniden kullanılabilir üst bölge bileşeni.
- Ana Sorumluluklar:
- - Başlık ve bağlamsal eylem butonlarını sunmak
- - Görsel stil ve boşlukları farklı görünümler arasında tutarlı kılmak
- Nerede Kullanılır: Başlık alanına ihtiyaç duyan sayfalarda.
+ Overview / Genel Bakış
+ EN: Reusable page header with a search box, language picker, and quick channel/playlist search actions.
+ TR: Arama kutusu, dil seçici ve hızlı kanal/oynatma listesi aramaları içeren tekrar kullanılabilir sayfa başlığı.
 */
 
+// EN: SwiftUI for view composition. TR: Görünüm bileşimi için SwiftUI.
 import SwiftUI
 
+// EN: Compact header; embeds search and quick actions. TR: Kompakt başlık; arama ve hızlı eylemler içerir.
 struct HeaderView: View {
+    // EN: Two-way bound search text. TR: İki yönlü bağlı arama metni.
     @Binding var searchText: String
+    // EN: Focus state to control TextField focus. TR: TextField odağını kontrol eden focus durumu.
     @FocusState var isSearchFocused: Bool
+    // EN: Toggles for auxiliary search sheets. TR: Yardımcı arama sayfaları için anahtarlar.
     @Binding var showChannelSearch: Bool
     @Binding var showPlaylistSearch: Bool
+    // EN: API service to perform searches. TR: Arama yapmak için API servisi.
     @ObservedObject var youtubeAPI: YouTubeAPIService
+    // EN: Localizer for UI labels. TR: UI etiketleri için yerelleştirici.
     @EnvironmentObject private var i18n: Localizer
+    // EN: Persisted app language (EN/TR). TR: Kalıcı uygulama dili (EN/TR).
     @AppStorage("appLanguage") private var appLanguageRaw: String = AppLanguage.en.rawValue
     private var appLanguage: AppLanguage { AppLanguage(rawValue: appLanguageRaw) ?? .en }
     
     var body: some View {
         VStack(spacing: 0) {
             HStack {
-                // App icon ve başlık (Swifttube)
+                // EN: App icon and title. TR: Uygulama simgesi ve başlık.
                 HStack(spacing: 6) {
                     Image(nsImage: NSApplication.shared.applicationIconImage)
                         .resizable()
@@ -44,16 +41,16 @@ struct HeaderView: View {
                 
                 Spacer()
                 
-                // Arama ve Butonlar Bölümü
+                // EN: Search bar and quick action buttons. TR: Arama çubuğu ve hızlı eylem butonları.
                 HStack(spacing: 12) {
-                    // Arama Çubuğu
+                    // EN: Search box with icon button and Enter commit. TR: İkon butonu ve Enter ile arama kutusu.
                     RoundedRectangle(cornerRadius: 6)
                         .fill(Color(.textBackgroundColor).opacity(0.8))
                         .frame(width: 200, height: 24)
                         .overlay(
                             HStack {
                                 Button(action: {
-                                    // Search functionality
+                                    // EN: Trigger search if non-empty; blur focus. TR: Boş değilse aramayı tetikle; odağı kaldır.
                                     if !searchText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
                                         youtubeAPI.searchVideos(query: searchText)
                                     }
@@ -68,7 +65,7 @@ struct HeaderView: View {
                                 TextField(
                                     i18n.t(.searchPlaceholder), text: $searchText,
                                     onCommit: {
-                                        // Search functionality
+                                        // EN: Trigger search on Enter. TR: Enter ile aramayı çalıştır.
                                         if !searchText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
                                             youtubeAPI.searchVideos(query: searchText)
                                         }
@@ -79,44 +76,44 @@ struct HeaderView: View {
                                 .foregroundColor(.primary)
                                 .font(.system(size: 12))
                                 .textFieldStyle(PlainTextFieldStyle())
-                                // Incremental search kaldırıldı: sadece Enter (onCommit) veya ikon butonu ile sonuç getirilecek.
+                                // EN: Incremental search removed; only Enter or icon triggers. TR: Artımlı arama kaldırıldı; sadece Enter veya ikon tetikler.
                                 .onReceive(
                                     NotificationCenter.default.publisher(
                                         for: NSApplication.didBecomeActiveNotification)
                                 ) { _ in
-                                    // Uygulama aktif olduğunda fokus olmasını engelle
+                                    // EN: Avoid auto-focus when app becomes active. TR: Uygulama aktif olunca otomatik odaklanmayı engelle.
                                     isSearchFocused = false
                                 }
                                 .onReceive(
                                     NotificationCenter.default.publisher(
                                         for: NSWindow.didBecomeKeyNotification)
                                 ) { _ in
-                                    // Pencere aktif olduğunda fokus olmasını engelle
+                                    // EN: Avoid auto-focus when window becomes key. TR: Pencere aktif olunca otomatik odaklanmayı engelle.
                                     isSearchFocused = false
                                 }
                                 .onAppear {
-                                    // Uygulama açıldığında fokus olmasını engelle
+                                    // EN: Avoid focus shortly after appear. TR: Göründükten kısa süre sonra odaklanmayı engelle.
                                     DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
                                         isSearchFocused = false
                                     }
                                 }
                                 .onAppear {
-                                    // Uygulama açıldığında fokus olmasını engelle
+                                    // EN: Double-guard: keep unfocused initially. TR: Çift koruma: başlangıçta odaksız tut.
                                     isSearchFocused = false
                                 }
                                 .onTapGesture {
-                                    // Sadece mouse ile tıklandığında fokus ol
+                                    // EN: Focus only when user clicks. TR: Yalnızca kullanıcı tıklayınca odaklan.
                                     isSearchFocused = true
                                 }
                             }
                             .padding(.horizontal, 6)
                         )
                         .onTapGesture {
-                            // Arama çubuğu alanına tıklandığında fokus ol
+                            // EN: Focus when tapping the search area. TR: Arama alanına tıklayınca odaklan.
                             isSearchFocused = true
                         }
                     
-                    // Dil seçimi ve arama butonları
+                    // EN: Language menu and channel/playlist quick searches. TR: Dil menüsü ve kanal/oynatma listesi hızlı aramaları.
                     HStack(spacing: 8) {
                         Menu {
                             Picker("Language", selection: Binding(
@@ -143,6 +140,7 @@ struct HeaderView: View {
                         .menuStyle(.borderlessButton)
 
                         Button(action: {
+                            // EN: Open channel search sheet. TR: Kanal arama sayfasını aç.
                             showChannelSearch = true
                         }) {
                             HStack(spacing: 4) {
@@ -160,6 +158,7 @@ struct HeaderView: View {
                         .buttonStyle(.plain)
                         
                         Button(action: {
+                            // EN: Open playlist search sheet. TR: Oynatma listesi arama sayfasını aç.
                             showPlaylistSearch = true
                         }) {
                             HStack(spacing: 4) {
@@ -180,12 +179,12 @@ struct HeaderView: View {
             }
         }
         .padding(.horizontal, 16)
-        .padding(.top, 8)  // Küçük üst padding
-        .frame(height: 44)  // Biraz daha yüksek
-        .background(.ultraThickMaterial)
+        .padding(.top, 8)  // EN: Slight top padding. TR: Küçük üst boşluk.
+        .frame(height: 44)  // EN: Slightly taller header. TR: Biraz daha yüksek başlık.
+        .background(.ultraThickMaterial) // EN: Blurred header background. TR: Blur'lu başlık arka planı.
         .overlay(
             Rectangle()
-                .frame(height: 0.5)
+                .frame(height: 0.5) // EN: Hairline separator at bottom. TR: Altta ince ayırıcı çizgi.
                 .foregroundColor(Color(.separatorColor).opacity(0.2)),
             alignment: .bottom
         )

@@ -1,52 +1,42 @@
 /*
- File Overview (EN)
- Purpose: Off-screen hidden player surface used for background audio playback and smooth handovers to mini player.
- Key Responsibilities:
- - Keep an audio-only session alive when UI player isn’t visible
- - Coordinate start/stop with mini player and overlay transitions
- - Expose simple controls via Notifications or bindings
- Used By: Background audio and mini player resume logic.
-
- Dosya Özeti (TR)
- Amacı: Arka planda ses çalma ve mini oynatıcıya yumuşak geçişler için kullanılan ekran dışı gizli oynatıcı yüzeyi.
- Ana Sorumluluklar:
- - UI oynatıcı görünmüyorken yalnızca ses oturumunu canlı tutmak
- - Başlat/durdur işlemlerini mini oynatıcı ve overlay geçişleriyle koordine etmek
- - Bildirimler veya binding’ler aracılığıyla basit kontroller sağlamak
- Nerede Kullanılır: Arka plan ses çalma ve mini oynatıcıya devam etme mantığı.
+ Overview / Genel Bakış
+ EN: Hidden, off-screen player host for background audio and mini-player handoffs.
+ TR: Arka plan ses ve mini oynatıcı geçişleri için gizli, ekran dışı oynatıcı yüzeyi.
 */
 
+// EN: SwiftUI for embedding a nearly invisible player. TR: Neredeyse görünmez oynatıcı gömmek için SwiftUI.
 import SwiftUI
 
-/// A hidden WebView host for audio-only playback using LightYouTubeEmbed.
-/// Renders at 1x1 size and with forceHideAll; attached to the main view tree so media keeps playing.
+/// EN: Hidden LightYouTubeEmbed host for audio-only playback; remains in the tree to keep media alive.
+/// TR: Ses odaklı oynatma için gizli LightYouTubeEmbed; medya akışını sürdürmek için hiyerarşide kalır.
 struct HiddenAudioPlayerView: View {
     @ObservedObject var audio: AudioPlaylistPlayer
     @State private var readyToken: UUID = UUID()
 
     var body: some View {
         Group {
+            // EN: Only attach the webview when audio session is active. TR: Webview’i yalnızca ses oturumu aktifken ekle.
             if audio.isActive, let vid = audio.currentVideoId {
                 LightYouTubeEmbed(
                     videoId: vid,
                     startSeconds: 0,
                     autoplay: audio.isPlaying,
-                    forceHideAll: true, // hide all UI and visuals
+                    forceHideAll: true, // EN: Hide all UI and visuals; audio only. TR: Tüm UI/görseller gizli; sadece ses.
                     showOnlyProgressBar: false,
                     applyAppearanceSettings: false,
                     enableColorSampling: false,
                     controller: audio.controller,
                     onReady: {}
                 )
-                // Render extremely small and fully transparent
+                // EN: Render at 1x1 and nearly transparent to avoid layout impact. TR: Yerleşimi etkilememek için 1x1 boyutta ve neredeyse tamamen saydam render et.
                 .frame(width: 1, height: 1)
                 .opacity(0.001) // keep in hierarchy but visually invisible
                 .accessibilityHidden(true)
                 .id(readyToken)
                 .onChange(of: audio.currentVideoId) { _, _ in
-                    // In-place switch when possible to avoid destroying the webview
+                    // EN: In-place switch to avoid destroying the webview. TR: Webview’i yok etmeden yerinde geçiş yap.
                     if let vid = audio.currentVideoId { audio.controller.load(videoId: vid, autoplay: audio.isPlaying) }
-                    // Nudge duration/time to refresh after a small delay so mini bar updates immediately
+                    // EN: Nudge duration fetch shortly after to update mini bar state. TR: Mini çubuğun hemen güncellenmesi için kısa süre sonra süre bilgisini tetikle.
                     DispatchQueue.main.asyncAfter(deadline: .now() + 0.25) {
                         audio.controller.fetchDuration { _ in }
                     }

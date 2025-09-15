@@ -1,24 +1,13 @@
 /*
- File Overview (EN)
- Purpose: Optional bottom bar with quick player controls and now-playing info; coordinates with mini player.
- Key Responsibilities:
- - Show play/pause, seek, volume, and pop-out buttons
- - Reflect current video title/channel and progress
- - Hide/show based on global notifications or local state
- Used By: Main layout when bottom bar is enabled.
-
- Dosya Özeti (TR)
- Amacı: Hızlı oynatıcı kontrolleri ve şimdi çalan bilgisi içeren isteğe bağlı alt çubuk; mini oynatıcı ile koordine olur.
- Ana Sorumluluklar:
- - Oynat/duraklat, sar, ses ve dışarı al düğmelerini göstermek
- - Geçerli video başlığı/kanalı ve ilerlemeyi yansıtmak
- - Global bildirimler veya yerel duruma göre göster/gizle
- Nerede Kullanılır: Alt çubuğun etkin olduğu ana yerleşim.
+ Overview / Genel Bakış
+ EN: Optional bottom player bar with seek/playback controls and playlist popover; coordinates with the audio engine and video overlay.
+ TR: İsteğe bağlı alt oynatıcı çubuğu; sar/oynatma kontrolleri ve playlist açılır penceresi içerir; ses motoru ve video paneliyle koordine olur.
 */
 
+// EN: SwiftUI view for global audio controls. TR: Global ses kontrolleri için SwiftUI görünümü.
 import SwiftUI
 
-/// Bottom player bar bound to AudioPlaylistPlayer. Shows current track metadata if available.
+/// EN: Bottom player bar bound to AudioPlaylistPlayer; shows progress and provides controls. TR: AudioPlaylistPlayer’a bağlı alt çubuk; ilerlemeyi gösterir ve kontroller sunar.
 struct BottomPlayerBar: View {
     @EnvironmentObject var youtubeAPI: YouTubeAPIService
     @ObservedObject var audio: AudioPlaylistPlayer
@@ -30,7 +19,7 @@ struct BottomPlayerBar: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            // Playback progress / seek bar
+            // EN: Playback progress bar with draggable seek. TR: Sürüklenebilir sarma çubuğuna sahip oynatma ilerlemesi.
             GeometryReader { geo in
                 ZStack(alignment: .leading) {
                     Rectangle()
@@ -40,7 +29,7 @@ struct BottomPlayerBar: View {
                         .frame(width: progressWidth(total: geo.size.width))
                         .animation(.linear(duration: 0.25), value: audio.currentTime)
 
-                    // Tooltip for scrub preview
+                    // EN: Tooltip shows the target time while scrubbing. TR: Sürükleme sırasında hedef zamanı gösteren ipucu.
                     if isScrubbing && audio.duration > 0 {
                         let margin: CGFloat = 24
                         let clampedX = max(margin, min(scrubX, geo.size.width - margin))
@@ -91,7 +80,7 @@ struct BottomPlayerBar: View {
             Divider()
                 .overlay(Color.primary.opacity(0.12))
             HStack(spacing: 12) {
-                // Controls fixed to the left
+                // EN: Transport controls anchored to the left. TR: Sola sabitlenmiş oynatım kontrolleri.
                 HStack(spacing: 12) {
                         // Previous (subtle circle)
                         Button(action: { audio.previous() }) {
@@ -138,7 +127,7 @@ struct BottomPlayerBar: View {
                         .help("Next")
                         .disabled(!audio.isActive)
 
-                        // Shuffle toggle (to the right of Next)
+                        // EN: Shuffle toggle (right of Next). TR: Karıştırma anahtarı (İleri’nin sağında).
                         Button(action: { audio.setShuffle(!audio.isShuffleEnabled) }) {
                             ZStack {
                                 Circle()
@@ -153,7 +142,7 @@ struct BottomPlayerBar: View {
                         .help(audio.isShuffleEnabled ? "Shuffle on" : "Shuffle off")
                         .disabled(!audio.isActive)
 
-                        // Repeat mode button: cycles Off → Once → Infinite
+                        // EN: Repeat cycles Off → Once → Infinite. TR: Tekrar sırası Kapalı → Bir Kez → Sonsuz.
                         Button(action: { audio.cycleRepeatMode() }) {
                             ZStack {
                                 Circle()
@@ -164,7 +153,7 @@ struct BottomPlayerBar: View {
                             }
                             .frame(width: 28, height: 28)
                             .overlay(alignment: .topTrailing) {
-                                // Badge (top-right): "1" for once, "∞" for infinite
+                                // EN: Badge shows 1 (once) or ∞ (infinite). TR: Rozet 1 (bir kez) veya ∞ (sonsuz) gösterir.
                                 if audio.repeatMode != .off {
                                     Text(audio.repeatMode == .once ? "1" : "∞")
                                         .font(.system(size: 9, weight: .bold))
@@ -187,7 +176,7 @@ struct BottomPlayerBar: View {
                         }())
                         .disabled(!audio.isActive)
                 }
-                // Volume slider immediately to the right of controls
+                // EN: Volume slider next to transport controls. TR: Oynatım kontrollerinin yanında ses kaydırıcısı.
                 HStack(spacing: 8) {
                     Image(systemName: audio.volume <= 0.01 ? "speaker.slash.fill" : (audio.volume < 0.5 ? "speaker.wave.1.fill" : "speaker.wave.3.fill"))
                         .foregroundStyle(.secondary)
@@ -203,7 +192,7 @@ struct BottomPlayerBar: View {
 
                 Spacer(minLength: 8)
 
-                // Playlist button (right side)
+                // EN: Playlist popover (right side). TR: Playlist açılır penceresi (sağ).
                 Button(action: { showPlaylist.toggle() }) {
                     Image(systemName: "music.note.list")
                         .font(.system(size: 14, weight: .semibold))
@@ -271,14 +260,14 @@ struct BottomPlayerBar: View {
                         .frame(width: 320, height: 260)
                         .padding(10)
                     } else {
-                        // Use the exact API instance bound to the audio engine, falling back to environment
+                        // EN: Use API bound to the audio engine; fallback to environment. TR: Sese bağlı API’yi kullan; yoksa ortamı kullan.
                         PlaylistPopover(api: audio.boundAPI ?? youtubeAPI, audio: audio)
                             .frame(width: 360, height: 380)
                             .padding(8)
                     }
                 }
 
-                // Video button (middle) — exit mini and open normal video panel
+                // EN: Open video overlay at current timestamp (exits mini). TR: Geçerli zamanda video panelini aç (mini’den çıkar).
                 Button(action: {
                     guard let vid = audio.currentVideoId else { return }
                     let time = audio.currentTime
@@ -299,7 +288,7 @@ struct BottomPlayerBar: View {
                 .help("Videoya geç")
                 .disabled(!audio.isActive || audio.currentVideoId == nil)
 
-                // Close mini bar — same size & style as the playlist button
+                // EN: Close the mini bar and stop playback. TR: Mini çubuğu kapat ve oynatmayı durdur.
                 Button(action: {
                     // Fully stop playback and hide the bar
                     audio.stop()
@@ -344,7 +333,7 @@ struct BottomPlayerBar: View {
         return String(format: "%d:%02d:%02d", s/3600, (s%3600)/60, s%60)
     }
 
-    // Resolve a URL for a playlist cover image: prefer local custom cover path, else remote thumbnail URL
+    // EN: Resolve cover image URL (prefer local custom, else remote). TR: Kapak görseli URL’sini çöz (önce yerel özel, yoksa uzak).
     private func resolvePlaylistCoverURL(_ p: YouTubePlaylist) -> URL? {
         if let path = p.customCoverPath, !path.isEmpty, FileManager.default.fileExists(atPath: path) {
             return URL(fileURLWithPath: path)
@@ -362,7 +351,7 @@ private struct PlaylistPopover: View {
     @ObservedObject var audio: AudioPlaylistPlayer
     @State private var isLoadingMore: Bool = false
 
-    // Resolve active playlist title from API sources (user or searched)
+    // EN: Resolve active playlist title from API (user or searched). TR: Etkin playlist başlığını API’den çöz (kullanıcı veya arama).
     private var activePlaylistTitle: String? {
         guard let pid = audio.activePlaylistId, !pid.isEmpty else { return nil }
         if let p = api.userPlaylists.first(where: { $0.id == pid }) {
@@ -443,7 +432,7 @@ private struct PlaylistPopover: View {
 
     private func triggerLoadMoreIfNeeded(currentIndex: Int) {
         guard let pid = audio.activePlaylistId else { return }
-        // Determine real count and whether we're near the end of currently loaded items
+    // EN: Trigger incremental load when near the end. TR: Sona yaklaşınca artımlı yüklemeyi tetikle.
         let cached = api.cachedPlaylistVideos[pid] ?? []
         let real = cached.filter { !($0.title.isEmpty && $0.channelTitle.isEmpty) }
         let realCount = real.count
@@ -475,7 +464,7 @@ private struct PlaylistRow: View {
                     .font(.caption2.monospacedDigit())
                     .foregroundStyle(.secondary)
                     .frame(width: 18, alignment: .trailing)
-                // thumbnail (cached + keyed by id)
+                // EN: Thumbnail (cached, keyed by id). TR: Küçük görsel (önbellekli, id’ye göre anahtarlanmış).
                 CachedAsyncImage(url: URL(string: youtubeThumbnailURL(video.id, quality: .mqdefault))) { img in
                     img.resizable().scaledToFill()
                 } placeholder: {

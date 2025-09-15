@@ -1,25 +1,14 @@
 /*
- File Overview (EN)
- Purpose: Borderless fullscreen window hosting the player, with entry/exit coordination and state transfer.
- Key Responsibilities:
- - Manage a dedicated NSWindow for fullscreen playback and keyboard shortcuts
- - Transfer video ID and current time on enter/exit
- - Notify main UI to restore inline player state after exit
- Used By: VideoEmbedView fullscreen mode.
-
- Dosya Özeti (TR)
- Amacı: Oynatıcıyı barındıran kenarlıksız tam ekran pencere; giriş/çıkış koordinasyonu ve durum aktarımı.
- Ana Sorumluluklar:
- - Tam ekran oynatma için özel bir NSWindow yönetmek ve klavye kısayollarını ele almak
- - Giriş/çıkışta video kimliği ve anlık zamanı aktarmak
- - Çıkıştan sonra sekme içi oynatıcı durumunu geri yüklemesi için ana UI’ı bilgilendirmek
- Nerede Kullanılır: VideoEmbedView tam ekran modu.
+ Overview / Genel Bakış
+ EN: Borderless fullscreen player window that transfers time and coordinates exit/restore with the main UI.
+ TR: Zaman aktaran ve ana UI ile çıkış/geri yüklemeyi koordine eden kenarlıksız tam ekran oynatıcı penceresi.
 */
 
+// EN: SwiftUI/AppKit interop for a custom fullscreen NSWindow host. TR: Özel tam ekran NSWindow barındırmak için SwiftUI/AppKit birlikte çalışması.
 import SwiftUI
 import AppKit
 
-// Sadece video için tam ekran overlay penceresi
+// EN: Dedicated fullscreen overlay window for video only. TR: Sadece video için ayrılmış tam ekran üst pencere.
 @MainActor
 final class FullscreenPlayerWindow: NSObject, NSWindowDelegate {
     static let shared = FullscreenPlayerWindow()
@@ -36,22 +25,23 @@ final class FullscreenPlayerWindow: NSObject, NSWindowDelegate {
     var isPresented: Bool { window != nil }
     var activeVideoId: String? { currentVideoId }
 
+    // EN: Create and present the fullscreen window; capture onClose for time handoff. TR: Tam ekran pencereyi oluşturup göster; kapanışta zaman devri için onClose yakalanır.
     func present(videoId: String, startAt: Double, onClose: @escaping (Double?) -> Void) {
-        // Zaten bir pencere varsa önce düzgün kapat
+        // TR: Zaten bir pencere varsa önce düzgün kapat. EN: Close existing window first if any.
         if window != nil { requestClose(with: nil) }
         self.onClose = onClose
 
-    // Paylaşılan controller: kapanış anında süre okumak için window sahiplenir
+    // EN: Shared controller owned by the window to query time on close. TR: Kapanışta süre okumak için pencerenin sahip olduğu paylaşılan denetleyici.
     let controller = LightYouTubeController()
     self.controller = controller
     self.currentVideoId = videoId
     let content = FullscreenPlayerContent(videoId: videoId, startSeconds: startAt, controller: controller) { [weak self] seconds in
-            // Kapanış talebi (zaman iadesi ile)
+            // EN: Close request with returned time. TR: Zaman iadesiyle kapanış isteği.
             self?.requestClose(with: seconds)
         }
         let hosting = NSHostingView(rootView: content)
 
-        // Yeni Space'te gerçek tam ekran: titled + fullSizeContentView, başlık görünümünü şeffaf yap
+        // EN: Configure borderless-like window suitable for native fullscreen Space. TR: Yerel tam ekran Space için uygun pencere yapılandırması.
         let w = NSWindow(contentRect: NSScreen.main?.frame ?? .zero,
                          styleMask: [.titled, .resizable, .fullSizeContentView, .closable, .miniaturizable],
                          backing: .buffered,
@@ -65,10 +55,10 @@ final class FullscreenPlayerWindow: NSObject, NSWindowDelegate {
         w.hasShadow = false
         w.ignoresMouseEvents = false
         w.isOpaque = true
-    w.delegate = self
+        w.delegate = self
         w.contentView = hosting
 
-        // Tüm ekranı kapla (çoklu ekran varsa ana ekran)
+        // EN: Cover entire screen (main display). TR: Tüm ekranı kapla (ana ekran).
         if let screen = NSScreen.main {
             w.setFrame(screen.frame, display: true)
         }
@@ -76,7 +66,7 @@ final class FullscreenPlayerWindow: NSObject, NSWindowDelegate {
         w.makeKeyAndOrderFront(nil)
         NSApp.activate(ignoringOtherApps: true)
 
-        // Yeni bir Space'te tam ekrana geç
+        // EN: Enter native fullscreen Space shortly after creation. TR: Oluşturduktan kısa süre sonra yerel tam ekran Space’e geç.
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) {
             w.toggleFullScreen(nil)
         }
@@ -84,17 +74,17 @@ final class FullscreenPlayerWindow: NSObject, NSWindowDelegate {
         self.window = w
     }
 
-    // Dışarıdan kapatma isteği (ESC/X veya programatik)
+    // EN: External close request (ESC/X or programmatic). TR: Dışarıdan kapatma isteği (ESC/X veya programatik).
     func requestClose(with time: Double?) {
         pendingReturnTime = time
         guard let w = window else {
-            // Pencere yoksa sadece callback’i ilet
+            // EN: No window: just forward callback with last time. TR: Pencere yoksa sadece geri çağrıyı ilet.
             onClose?(pendingReturnTime)
             onClose = nil
             pendingReturnTime = nil
             return
         }
-        // Fullscreen ise önce çık, sonra kapat
+        // EN: If in fullscreen, exit first; then close. TR: Fullscreen ise önce çık; sonra kapat.
         if isInFullScreen {
             shouldCloseAfterExitingFullScreen = true
             w.toggleFullScreen(nil)
@@ -105,7 +95,7 @@ final class FullscreenPlayerWindow: NSObject, NSWindowDelegate {
 
     private func actuallyClose() {
         guard let w = window else { return }
-        // Standart kapatma, animasyon ve Space geri dönüşünü OS yönetir
+        // EN: Standard close; OS handles animation and Space return. TR: Standart kapatma; animasyon ve Space dönüşünü OS yönetir.
         w.close()
     }
 
@@ -113,8 +103,7 @@ final class FullscreenPlayerWindow: NSObject, NSWindowDelegate {
     func windowDidEnterFullScreen(_ notification: Notification) { isInFullScreen = true }
     func windowDidExitFullScreen(_ notification: Notification) {
         isInFullScreen = false
-        // Bazı durumlarda ESC sistem tarafından işleniyor ve bizim KeyHandler'ımız tetiklenmiyor.
-        // Kapanmadan önce mevcut süreyi okumayı dene; böylece başlangıç süresine geri düşmeyiz.
+        // EN: ESC may be handled by system; try to read current time before closing to avoid resetting to 0. TR: ESC bazen sistemce işlenir; kapanmadan önce süreyi okumayı dene ki 0’a dönmeyelim.
         let finalizeClose: () -> Void = { [weak self] in
             guard let self else { return }
             self.shouldCloseAfterExitingFullScreen = false
@@ -136,10 +125,10 @@ final class FullscreenPlayerWindow: NSObject, NSWindowDelegate {
         }
     }
     func windowWillClose(_ notification: Notification) {
-        // Tek noktadan temizlik ve geri bildirim
+        // EN: Single exit point for cleanup and callback. TR: Temizlik ve geri bildirim için tek çıkış noktası.
         let cb = onClose
         let returned = pendingReturnTime
-    let vId = currentVideoId
+        let vId = currentVideoId
         // Temizle
         window?.delegate = nil
         window?.contentView = nil
@@ -149,18 +138,19 @@ final class FullscreenPlayerWindow: NSObject, NSWindowDelegate {
         isInFullScreen = false
         shouldCloseAfterExitingFullScreen = false
         controller = nil
-    currentVideoId = nil
-    // Olası arkaplan oynatımı kestirmek için global bir stop yayınla
+        currentVideoId = nil
+        // EN: Broadcast a global stop to prevent background playback. TR: Arka plan oynatımını engellemek için global stop yayınla.
     NotificationCenter.default.post(name: .stopAllVideos, object: nil)
         // Zaman bilgisini ilet
         cb?(returned)
-        // Persist final time for resume later
+        // EN: Persist final time for later resume. TR: Daha sonra devam edebilmek için süreyi kalıcı kaydet.
         if let vId, let t = returned {
             Task { await PlaybackProgressStore.shared.save(videoId: vId, seconds: t) }
         }
     }
 }
 
+// EN: SwiftUI content embedded in the fullscreen window. TR: Tam ekran pencerede gömülü SwiftUI içerik.
 private struct FullscreenPlayerContent: View {
     let videoId: String
     let startSeconds: Double
@@ -169,7 +159,7 @@ private struct FullscreenPlayerContent: View {
     @State private var ready = false
     @State private var lastObservedTime: Double = 0
     @State private var timeSampler: Timer?
-    // Auto-hide for close button
+    // EN: Auto-hide logic for the close button. TR: Kapat düğmesi için otomatik gizleme mantığı.
     @State private var showClose = true
     @State private var lastMouseActivityAt = Date()
     @State private var hideWorkItem: DispatchWorkItem? = nil
@@ -177,6 +167,7 @@ private struct FullscreenPlayerContent: View {
     var body: some View {
         ZStack {
             Color.black.ignoresSafeArea()
+            // EN: Inline YouTube player with controller bridge and appearance settings. TR: Denetleyici köprüsü ve görünüm ayarlarıyla gömülü YouTube oynatıcı.
             LightYouTubeEmbed(
                 videoId: videoId,
                 startSeconds: startSeconds,
@@ -185,7 +176,7 @@ private struct FullscreenPlayerContent: View {
                 showOnlyProgressBar: false,
                 applyAppearanceSettings: true,
                 controller: controller,
-        onReady: {
+                onReady: {
                     withAnimation(.easeOut(duration: 0.18)) { ready = true }
                     // Süre örnekleyici: olası fallback durumunda bile zaman kaydetmeyi dene
                     timeSampler?.invalidate()
@@ -200,7 +191,7 @@ private struct FullscreenPlayerContent: View {
             )
             .ignoresSafeArea()
 
-            // Kapat (blur arkaplan + auto-hide)
+            // EN: Close control (blurred bg + auto-hide). TR: Kapat kontrolü (blur arka plan + otomatik gizleme).
             VStack { Spacer(minLength: 0) }
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
                 .overlay(alignment: .topTrailing) {
@@ -221,7 +212,7 @@ private struct FullscreenPlayerContent: View {
                     .offset(y: showClose ? 0 : -24)
                 }
         }
-        // Mouse hareketi/çıkışı: auto-hide yönetimi
+        // EN: Mouse move/exit: manage auto-hide visibility. TR: Fare hareket/çıkış: otomatik gizlemeyi yönet.
         .overlay {
             MouseActivityView { event in
                 switch event {
@@ -287,6 +278,7 @@ private struct FullscreenPlayerContent: View {
     }
 }
 
+// EN: Helpers to schedule/hide the close control. TR: Kapat kontrolünü zamanlamak/gizlemek için yardımcılar.
 private extension FullscreenPlayerContent {
     func scheduleAutoHide() {
         hideWorkItem?.cancel()
@@ -305,7 +297,7 @@ private extension FullscreenPlayerContent {
     func hideImmediately() { withAnimation { showClose = false } }
 }
 
-// ESC dinleyicisi
+// EN: ESC/arrow key listener bridge (NSViewRepresentable). TR: ESC/ok tuşu dinleyici köprüsü (NSViewRepresentable).
 private struct KeyHandler: NSViewRepresentable {
     var onEscape: () -> Void
     var onArrow: (Int) -> Void = { _ in } // -1 left, +1 right

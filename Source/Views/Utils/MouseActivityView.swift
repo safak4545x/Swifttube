@@ -1,17 +1,7 @@
 /*
- File Overview (EN)
- Purpose: Utility view that detects mouse movement/hover to drive UI reactions (auto-hide controls, show scroll buttons, etc.).
- Key Responsibilities:
- - Track mouse movement and hover state within a region
- - Publish changes via bindings/closures
- Used By: Scroll button reveals, overlay controls.
-
- Dosya Özeti (TR)
- Amacı: Fare hareketi/hover algılayıp UI tepkilerini tetikleyen yardımcı görünüm (kontrol gizleme/gösterme vb.).
- Ana Sorumluluklar:
- - Bir bölge içinde fare hareketi ve hover durumunu izlemek
- - Değişimleri binding/closure ile dışarı aktarmak
- Nerede Kullanılır: Kaydırma butonları ve overlay kontrollerinin görünümü.
+ Overview / Genel Bakış
+ EN: Detect hover/mouse movement to drive UI (auto-hide controls, reveal buttons).
+ TR: UI tepkilerini tetiklemek için hover/fare hareketi algılar.
 */
 
 import SwiftUI
@@ -65,7 +55,7 @@ public struct MouseActivityView: NSViewRepresentable {
             ]
             trackingArea = NSTrackingArea(rect: bounds, options: options, owner: self, userInfo: nil)
             addTrackingArea(trackingArea!)
-            window?.acceptsMouseMovedEvents = true
+            window?.acceptsMouseMovedEvents = true // EN: Ensure mouseMoved events are delivered. TR: mouseMoved olaylarının iletilmesini sağlar.
         }
 
         override func mouseEntered(with event: NSEvent) { onEvent?(.entered) }
@@ -75,7 +65,7 @@ public struct MouseActivityView: NSViewRepresentable {
 }
 
 #else
-/// iOS/no-AppKit fallback: renders nothing and emits no events.
+/// EN: iOS/no-AppKit fallback: renders nothing and emits no events. TR: iOS/AppKit olmayan ortamda boş görünüm, olay yok.
 public struct MouseActivityView: View {
     public init(onEvent: @escaping (_: Never) -> Void) {}
     public var body: some View { Color.clear }

@@ -1,21 +1,10 @@
 /*
- File Overview (EN)
- Purpose: Full video detail page layout combining player, metadata, actions, related list, and playlist panel when applicable.
- Key Responsibilities:
- - Host VideoEmbedView with ambient blur and connect to global controls
- - Render title, channel row, like/share/save actions with localization
- - Show related panel and optional playlist panel; manage layout adaptively
- Used By: Main content router when opening a video.
-
- Dosya Özeti (TR)
- Amacı: Oynatıcı, metadata, eylemler, ilgili liste ve uygunsa playlist panelini birleştiren tam video detay sayfası yerleşimi.
- Ana Sorumluluklar:
- - Ambient blur ile VideoEmbedView’i barındırmak ve global kontrollere bağlamak
- - Başlık, kanal satırı, beğen/paylaş/kaydet eylemlerini yerelleştirme ile göstermek
- - İlgili panel ve isteğe bağlı playlist panelini göstermek; uyarlanabilir yerleşimi yönetmek
- Nerede Kullanılır: Bir video açıldığında ana içerik yönlendiricisi.
+ Overview / Genel Bakış
+ EN: Full video detail layout: player + left content, and on wide screens a right sidebar (related or playlist).
+ TR: Tam video detay yerleşimi: oynatıcı + sol içerik, geniş ekranda sağ kenar (ilgili veya playlist).
 */
 
+// EN: SwiftUI/AppKit for adaptive layout and app integration (tabs, notifications). TR: Uyarlanabilir yerleşim ve uygulama entegrasyonu için SwiftUI/AppKit.
 import SwiftUI
 import AppKit
 
@@ -36,13 +25,13 @@ struct VideoDetailView: View {
     @State private var isDescriptionExpanded = false // Video açıklaması için
     @State private var expandedReplies: Set<String> = [] // Yanıtları göster/gizle takibi
     @State private var shouldPlay = true
-    // Global: Ambient blur (lightbulb) tercihini tüm videolarda hatırla
+    // EN: Remember ambient blur preference across videos. TR: Ambient blur tercihini videolar arasında hatırla.
     @AppStorage("global:ambientBlurEnabled") private var showAmbientBlur = false // Shorts tarzı arka plan blur
     @State private var ambientTint: Color? = nil // Dinamik blur için renk
     @State private var lastAmbientTint: Color? = nil
     // PiP dönüşü veya başka kaynaktan belirli saniyeden başlatma
     var resumeSeconds: Double? = nil
-    // Playlist mode (optional): when present, render the same Playlist panel on the right and move related videos under it.
+    // EN: Optional playlist mode shows playlist panel on the right and puts related underneath. TR: İsteğe bağlı playlist modu sağda panel ve altında ilgili videoları gösterir.
     var playlistContext: PlaylistContext? = nil
     // Inline player'dan mevcut zamanı paylaşması için depolanan değer
     @State private var latestInlineTime: Double = 0
@@ -86,7 +75,7 @@ struct VideoDetailView: View {
         }
     }
     
-    // Yorumları sıralama fonksiyonu - artık API'den sıralı geliyor
+    // EN: Comment sorting (client-side only for 'most liked'). TR: Yorum sıralama (yalnız 'en beğenilen' için istemci tarafı).
     private var sortedComments: [YouTubeComment] {
         // Client-side sıralama sadece relevance için (çünkü YouTube API bu sıralamayı desteklemiyor)
         if commentSortOption == .mostLiked {
@@ -98,12 +87,12 @@ struct VideoDetailView: View {
 
     var body: some View {
     ZStack(alignment: .topTrailing) {
-            // Use the same background color as HomePageView for visual consistency
+            // EN: Match background color with HomePageView for visual consistency. TR: Görsel tutarlılık için HomePageView ile aynı arkaplan.
             Color(NSColor.controlBackgroundColor)
                 .ignoresSafeArea()
             
             GeometryReader { geo in
-                // Breakpoint & dynamic sizes
+                // EN: Breakpoints and dynamic sizes for side layout vs single column. TR: Yan panel vs tek sütun için kırılım ve boyutlar.
                 let padding: CGFloat = 16
                 let contentWidth = max(600, geo.size.width - padding*2)
                 let gutter: CGFloat = 16
@@ -122,7 +111,7 @@ struct VideoDetailView: View {
                 ScrollViewReader { proxy in
                     ScrollView {
                         VStack(alignment: .leading, spacing: 20) {
-                            // Tek bir VideoEmbedView kullanarak layout modları arasında state'in (AVPlayer) sıfırlanmasını engelliyoruz.
+                            // EN: Single VideoEmbedView instance to avoid resetting the player across layout modes. TR: Yerleşim modları arasında player state’i sıfırlamamak için tek VideoEmbedView kullan.
                             HStack(alignment: .top, spacing: isSideLayout ? gutter : 0) {
                                 VStack(alignment: .leading, spacing: 20) {
                                     ZStack {
@@ -142,7 +131,7 @@ struct VideoDetailView: View {
                                                     ambientTint = c
                                                 }
                                             },
-                                            onTimeUpdate: { t in latestInlineTime = t }
+                                            onTimeUpdate: { t in latestInlineTime = t } // EN: Keep the latest time for handoffs. TR: Devralmalar için son zamanı sakla.
                                         )
                                         // time updates handled via onTimeUpdate
                                         .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
@@ -166,7 +155,7 @@ struct VideoDetailView: View {
                                     )
                                     .frame(maxWidth: isSideLayout ? nil : .infinity, alignment: .leading)
                                 }
-                                // Sağ kolon (geniş mod): either playlist panel (if playlist mode) or related videos
+                                // EN: Right column (wide): playlist panel if in playlist mode, else related videos. TR: Sağ kolon (geniş): playlist modu varsa panel, yoksa ilgili videolar.
                                 if isSideLayout {
                                     VStack(spacing: 12) {
                                         if let ctx = effectivePlaylistContext {
@@ -201,13 +190,13 @@ struct VideoDetailView: View {
                                                 )
                                                 .environmentObject(i18n)
                                                 .frame(maxWidth: .infinity)
-                                                // Below the playlist panel, show related videos
+                                                // EN: Show related videos under the playlist panel. TR: Playlist panelinin altında ilgili videoları göster.
                                                 RelatedVideosView(api: api, onSelect: { selected in
                                                     onOpenVideo?(selected)
                                                 })
                                                 .frame(maxWidth: .infinity)
                                             } else {
-                                                // Fallback: if playlist is not in user list anymore, show related as usual
+                                                // EN: Fallback when playlist is missing: just show related. TR: Playlist yoksa: yalnızca ilgili videolar.
                                                 RelatedVideosView(api: api, onSelect: { selected in onOpenVideo?(selected) })
                                             }
                                         } else {
@@ -226,7 +215,7 @@ struct VideoDetailView: View {
                         .frame(minWidth: 800, maxWidth: .infinity, minHeight: 700, maxHeight: .infinity, alignment: .top)
                     }
                     // Disable main page scrolling while the mouse is over the right playlist panel
-                    .scrollDisabled(disableOuterScroll)
+                    .scrollDisabled(disableOuterScroll) // EN: Prevent scroll when hovering the playlist panel. TR: Playlist paneli üzerindeyken kaydırmayı engelle.
                     .onReceive(NotificationCenter.default.publisher(for: .seekToSeconds)) { _ in
                         // Mini Player (PiP) aktifken scroll yapma
                         #if canImport(AppKit)
@@ -238,7 +227,7 @@ struct VideoDetailView: View {
                             return
                         }
                         #endif
-                        // Yorum içindeki timestamp tıklanınca player'a otomatik scroll
+                        // EN: Auto-scroll player into view after clicking a timestamp. TR: Zaman damgasına tıklayınca player’a otomatik kaydır.
                         withAnimation(.easeInOut(duration: 0.25)) {
                             proxy.scrollTo("player", anchor: .top)
                         }
@@ -246,7 +235,7 @@ struct VideoDetailView: View {
                 }
             }
             .onAppear {
-                // İzlenen videoyu geçmişe ekle (her açılışta en üste taşınır)
+                // EN: Add to watch history and fetch details/related/channel info. TR: İzleme geçmişine ekle ve detay/ilgili/kanal bilgilerini çek.
                 api.addToWatchHistory(video)
                 // Video detaylarını çek (like count dahil)
                 api.fetchVideoDetails(videoId: video.id)
@@ -254,19 +243,19 @@ struct VideoDetailView: View {
                 api.fetchChannelInfo(channelId: video.channelId)
                 api.fetchRelatedVideos(
                     videoId: video.id, channelId: video.channelId, videoTitle: video.title)
-                // Playlist modu aktifse: mevcut videoyu playlist panelinde seçili tutmak için bildir
+                // EN: Keep selection synced in the playlist panel when in playlist mode. TR: Playlist modunda paneldeki seçimi senkron tut.
                 if let ctx = effectivePlaylistContext {
                     NotificationCenter.default.post(name: .openPlaylistVideo, object: nil, userInfo: ["playlistId": ctx.playlistId, "videoId": video.id])
                 }
                 if let resumeSeconds, resumeSeconds > 1 {
-                    // Player embed oluşturulduktan sonra seek tetikle
+                    // EN: After embed created, trigger a seek to resume time. TR: Embed oluştuğunda devam zamanına sar.
                     DispatchQueue.main.asyncAfter(deadline: .now() + 0.35) {
                         NotificationCenter.default.post(name: .seekToSeconds, object: nil, userInfo: ["seconds": Int(resumeSeconds)])
                     }
                 }
             }
             .onChange(of: video.id) { _, _ in
-                // When switching to another video within the same panel, refresh related/comments etc.
+                // EN: Switching to another video in the same panel: fetch fresh data and sync playlist selection. TR: Aynı panelde başka videoya geçince verileri yenile ve playlist seçimini güncelle.
                 api.fetchVideoDetails(videoId: video.id)
                 api.fetchChannelInfo(channelId: video.channelId)
                 api.fetchRelatedVideos(videoId: video.id, channelId: video.channelId, videoTitle: video.title)
@@ -276,7 +265,7 @@ struct VideoDetailView: View {
                 }
             }
 
-            // Kapatma butonu artık üst barda, burada gösterilmiyor
+            // EN: Close control is now in the top bar; not shown here. TR: Kapatma kontrolü üst barda; burada yok.
         }
         
     }

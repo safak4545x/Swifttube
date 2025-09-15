@@ -1,17 +1,7 @@
 /*
- File Overview (EN)
- Purpose: Overlay to intercept middle-clicks and translate them into tab-opening actions consistent with desktop browsing patterns.
- Key Responsibilities:
- - Capture middle mouse button interactions over views
- - Post notifications or call handlers to open in tabs
- Used By: Video/playlist items to open in new tabs via middle-click.
-
- Dosya Özeti (TR)
- Amacı: Orta tıklamaları yakalayıp masaüstü tarayıcı alışkanlıklarına uygun olarak sekmede açma eylemlerine çeviren overlay.
- Ana Sorumluluklar:
- - Görünümler üzerinde orta düğme etkileşimlerini yakalamak
- - Sekmede açmak için bildirim/handler çağırmak
- Nerede Kullanılır: Video/playlist öğelerinde orta tıklama ile yeni sekme açma.
+ Overview / Genel Bakış
+ EN: Intercepts middle-clicks and maps them to "open in new tab" actions.
+ TR: Orta tıklamayı yakalayıp "yeni sekmede aç" eylemine dönüştürür.
 */
 
 import SwiftUI
@@ -31,7 +21,7 @@ struct MouseOpenInNewTabCatcher: NSViewRepresentable {
 		}
 		required init?(coder: NSCoder) { fatalError() }
 
-		// Only capture middle-clicks; let all other mouse events pass through to underlying SwiftUI views
+		// EN: Capture only middle-clicks; let other events fall through. TR: Sadece orta tıklamayı yakala; diğerlerini alttaki görünüme bırak.
 		override func hitTest(_ point: NSPoint) -> NSView? {
 			guard let event = NSApp.currentEvent else { return nil }
 			switch event.type {
@@ -43,7 +33,7 @@ struct MouseOpenInNewTabCatcher: NSViewRepresentable {
 		}
 
 		override func otherMouseDown(with event: NSEvent) {
-			// Middle button is typically buttonNumber == 2
+			// EN: Middle button is typically buttonNumber == 2. TR: Orta düğme genelde 2 numaradır.
 			if event.buttonNumber == 2 { onMiddleClick() }
 		}
 		override var isFlipped: Bool { true }

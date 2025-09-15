@@ -1,17 +1,7 @@
 /*
- File Overview (EN)
- Purpose: Async image view with lightweight caching and placeholder handling tailored for video/channel thumbnails.
- Key Responsibilities:
- - Display remote images with placeholder and error tolerance
- - Integrate with app-level cache utilities where possible
- Used By: Thumbnails across cards, lists, and sidebars.
-
- Dosya Özeti (TR)
- Amacı: Video/kanal küçük resimleri için hafif önbellek ve yer tutuculu asenkron görsel bileşeni.
- Ana Sorumluluklar:
- - Uzaktaki görselleri yer tutucu ve hata toleransı ile göstermek
- - Mümkün olduğunda uygulama düzeyi cache yardımcılarıyla bütünleşmek
- Nerede Kullanılır: Kartlar, listeler ve yan menülerdeki thumbnail alanlarında.
+ Overview / Genel Bakış
+ EN: Async image with lightweight caching and a placeholder, tailored for thumbnails.
+ TR: Küçük resimler için hafif önbellekli, yer tutuculu asenkron görsel bileşeni.
 */
 
 import SwiftUI
@@ -22,7 +12,7 @@ struct CachedAsyncImage<Content: View, Placeholder: View>: View {
     @ViewBuilder var content: (Image) -> Content
     @ViewBuilder var placeholder: () -> Placeholder
     @State private var nsImage: NSImage? = nil
-    // Track last-loaded URL to react to URL changes
+    // EN: Track last loaded URL to reset when URL changes. TR: URL değişince sıfırlamak için son yüklenen URL'yi takip et.
     @State private var loadedURLString: String? = nil
 
     var body: some View {
@@ -33,13 +23,13 @@ struct CachedAsyncImage<Content: View, Placeholder: View>: View {
                 placeholder()
             }
         }
-        // Always react to URL changes, even if we already have an image
+        // EN: React to URL changes even if an image is already present. TR: Görsel mevcut olsa bile URL değişimine tepki ver.
         .task(id: url) {
-            // If the incoming URL differs from what we previously loaded, reset and load
+            // EN: If URL differs from last one, clear image and load again. TR: URL öncekiyle farklıysa görseli temizleyip yeniden yükle.
             let next = url?.absoluteString
             if next != loadedURLString {
                 loadedURLString = next
-                // Clear the current image so placeholder shows while fetching new one
+                // EN: Clear current image to show placeholder while fetching. TR: Yeni yükleme sırasında yer tutucuyu göstermek için mevcut görseli temizle.
                 await MainActor.run { self.nsImage = nil }
                 await load()
             }
@@ -58,7 +48,7 @@ struct CachedAsyncImage<Content: View, Placeholder: View>: View {
                 await MainActor.run { self.nsImage = img }
             }
         } catch {
-            // ignore fetch errors
+            // EN: Ignore fetch errors; placeholder remains. TR: Yükleme hatalarını yok say; yer tutucu görünür.
         }
     }
 }

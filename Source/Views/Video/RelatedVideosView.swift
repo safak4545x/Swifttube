@@ -1,24 +1,14 @@
 /*
- File Overview (EN)
- Purpose: Right-hand related videos list under a playing video; supports local fetching, lazy loads, and quick actions.
- Key Responsibilities:
- - Render related items with skeletons and incremental updates
- - Allow open-in-new-tab, copy link, open channel actions
- - Integrate with Shorts-related service when the current video is a Short
- Used By: Video detail pages.
-
- Dosya Özeti (TR)
- Amacı: Oynatılan videonun yanında sağ tarafta ilgili videolar listesi; yerel çekim, tembel yükleme ve hızlı eylemler.
- Ana Sorumluluklar:
- - İlgili öğeleri iskeletler ve kademeli güncellemelerle göstermek
- - Yeni sekmede aç, bağlantıyı kopyala, kanalı aç eylemlerini sağlamak
- - Geçerli video Short ise Shorts-related servis ile entegrasyon
- Nerede Kullanılır: Video detay sayfaları.
+ Overview / Genel Bakış
+ EN: Right-side list of related videos with loading states, quick actions, and live/shorts heuristics.
+ TR: Yükleme durumları, hızlı eylemler ve canlı/shorts sezgileri olan sağ taraftaki ilgili videolar listesi.
 */
 
+// EN: SwiftUI/AppKit for list UI and clipboard/open actions. TR: Liste arayüzü ve panoya kopyala/aç işlemleri için SwiftUI/AppKit.
 import SwiftUI
 import AppKit
 
+// EN: Related list beside the main player; selecting an item opens it. TR: Ana oynatıcı yanında ilgili liste; seçimle video açılır.
 struct RelatedVideosView: View {
     @EnvironmentObject var i18n: Localizer
     @ObservedObject var api: YouTubeAPIService
@@ -32,12 +22,14 @@ struct RelatedVideosView: View {
     
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
+            // EN: Section title. TR: Bölüm başlığı.
             Text(i18n.t(.recommendedVideosTitle))
                 .font(.headline)
                 .padding(.bottom, 4)
 
             if api.relatedVideos.isEmpty {
                 if api.isLoadingRelated {
+                    // EN: Loading state with spinner. TR: Yükleniyor durumu ve dönen gösterge.
                     HStack(spacing: 8) {
                         ProgressView()
                         Text(i18n.t(.recommendedLoading))
@@ -46,19 +38,22 @@ struct RelatedVideosView: View {
                     .frame(maxWidth: .infinity, alignment: .center)
                     .padding(.vertical, 20)
                 } else {
+                    // EN: Empty state when nothing is available. TR: Veri yokken boş durum mesajı.
                     Text(i18n.t(.recommendedNone))
                         .foregroundColor(.secondary)
                         .frame(maxWidth: .infinity, alignment: .center)
                         .padding(.vertical, 20)
                 }
             } else {
-                // Sadece gerçek başlığa sahip videoları göster (title!=id ve boş değil)
+                // EN: Show only items with a real title (avoid id-only placeholders). TR: Sadece gerçek başlıklı öğeleri göster (yalnız id olanları filtrele).
                 let displayable = api.relatedVideos.filter { !$0.title.isEmpty && $0.title != $0.id }
+                // EN: Cap to a small set to keep the sidebar compact. TR: Kenar alanı derli toplu tutmak için küçük bir kümeyle sınırla.
                 ForEach(displayable.prefix(8)) { relatedVideo in
                     Button(action: {
                         onSelect?(relatedVideo)
                     }) {
                         HStack(spacing: 8) {
+                            // EN: Thumbnail. TR: Küçük görsel.
                             AsyncImage(url: URL(string: relatedVideo.thumbnailURL)) { image in
                                 image
                                     .resizable()
@@ -77,13 +72,14 @@ struct RelatedVideosView: View {
                             )
 
                             VStack(alignment: .leading, spacing: 4) {
-                                // Başlık: eğer API başlık döndürememişse (title==id) kullanıcıya id göstermeyelim
+                                // EN: Title (id-only cases already filtered). TR: Başlık (yalnız id olanlar zaten filtrelendi).
                                 Text(relatedVideo.title)
                                     .font(.system(size: 13, weight: .semibold))
                                     .foregroundColor(.primary)
                                     .lineLimit(2)
 
                                 HStack(alignment: .center, spacing: 6) {
+                                    // EN: Channel avatar (if available) + channel title. TR: Kanal avatarı (varsa) + kanal adı.
                                     if let url = URL(string: relatedVideo.channelThumbnailURL), !relatedVideo.channelThumbnailURL.isEmpty {
                                         AsyncImage(url: url) { img in
                                             img.resizable().scaledToFill()
@@ -98,10 +94,10 @@ struct RelatedVideosView: View {
                                         .foregroundColor(.secondary)
                                 }
 
-                                // Meta satırı: canlı ise izleyici sayısını göster; değilse gelen views + tarih
+                                // EN: Meta row — live badge/viewers vs. views + published date. TR: Meta satırı — canlı rozet/izleyici veya izlenme + yayın tarihi.
                                 HStack(spacing: 4) {
                                     if isLiveLike(relatedVideo) {
-                                        // Küçük kırmızı nokta + izleyici sayısı (varsa)
+                                        // EN: Small red dot + live viewers (if available). TR: Küçük kırmızı nokta + izleyici sayısı (varsa).
                                         Circle()
                                             .fill(Color.red)
                                             .frame(width: 6, height: 6)
@@ -153,13 +149,14 @@ struct RelatedVideosView: View {
                         }
                         .padding(.vertical, 4)
                         .onAppear {
-                            // Canlı gibi görünüyorsa izleyici sayısını tek seferlik çek
+                            // EN: If live-like, fetch live viewers once for this id. TR: Canlı gibiyse, bu id için izleyici sayısını bir kez çek.
                             if isLiveLike(relatedVideo) {
                                 api.fetchLiveViewersIfNeeded(videoId: relatedVideo.id)
                             }
                         }
                     }
                     .buttonStyle(PlainButtonStyle())
+                    // EN: Open in background tab (e.g., middle-click). TR: Arkaplanda yeni sekmede aç (ör. orta tık).
                     .overlay(MouseOpenInNewTabCatcher {
                         if let idx = tabs.indexOfTab(forVideoId: relatedVideo.id) {
                             tabs.activeTabId = tabs.tabs[idx].id
@@ -168,6 +165,7 @@ struct RelatedVideosView: View {
                         }
                     })
                     .contextMenu {
+                        // EN: Detect if item is a Short to build the right link. TR: Doğru linki kurmak için Short olup olmadığını saptar.
                         let isShorts = relatedVideo.title.lowercased().contains("#short") ||
                                        relatedVideo.title.lowercased().contains("#shorts") ||
                                        relatedVideo.title.lowercased().hasPrefix("shorts") ||
@@ -198,15 +196,14 @@ struct RelatedVideosView: View {
 
 // MARK: - Helpers
 private extension RelatedVideosView {
+    // EN: Live-like heuristic: API live count OR title/date keywords OR viewCount contains “watching”.
+    // TR: Canlı benzeri sezgi: API canlı sayısı VEYA başlık/tarih anahtar sözcükleri VEYA viewCount “watching” içerir.
     func isLiveLike(_ v: YouTubeVideo) -> Bool {
-        // 1) API daha önce canlı izleyici sayısı doldurduysa kesin canlı say.
         if let live = api.liveViewersByVideoId[v.id], !live.isEmpty { return true }
-        // 2) Başlık/publishedAt ipuçları
         let title = v.title.lowercased()
         let pub = v.publishedAt.lowercased()
         if title.contains(" live") || title.hasPrefix("live ") || title.contains("canlı") || title.contains(" canlı") { return true }
         if pub.contains("live") || pub.contains("canlı") || pub.contains("yayında") || pub.contains("started streaming") || pub.contains("streaming") { return true }
-        // 3) Views alanı "watching" içeriyorsa
         let vc = v.viewCount.lowercased()
         if vc.contains("watching") || vc.contains("izleyici") { return true }
         return false

@@ -1,18 +1,7 @@
-
 /*
- File Overview (EN)
- Purpose: Row component for a single playlist search result showing cover, title, count, and actions.
- Key Responsibilities:
- - Display playlist identity and total count (remote or local)
- - Provide actions to add to user library or open details
- Used By: PlaylistSearchView.
-
- Dosya Özeti (TR)
- Amacı: Tek bir playlist arama sonucu için satır bileşeni; kapak, başlık, adet ve eylemler içerir.
- Ana Sorumluluklar:
- - Playlist kimliğini ve toplam sayıyı (uzak veya yerel) göstermek
- - Kullanıcı kütüphanesine ekleme veya detay açma eylemleri sağlamak
- Nerede Kullanılır: PlaylistSearchView.
+ Overview / Genel Bakış
+ EN: Row for a single playlist search result.
+ TR: Tek bir playlist arama sonucu satırı.
 */
 
 import SwiftUI

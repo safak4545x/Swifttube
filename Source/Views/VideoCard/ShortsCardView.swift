@@ -1,19 +1,7 @@
 /*
- File Overview (EN)
- Purpose: Card UI for Shorts in grid/list contexts with thumbnail, title, and quick actions.
- Key Responsibilities:
- - Show thumbnail with proper aspect, placeholder, and subtle border
- - Display title and channel; open on tap; context menu actions
- - Indicate live/shorts markers as needed
- Used By: Home/Shorts grids and related sections.
-
- Dosya Özeti (TR)
- Amacı: Küçük resim, başlık ve hızlı eylemlerle grid/liste bağlamındaki Shorts kartı arayüzü.
- Ana Sorumluluklar:
- - Uygun oran, yer tutucu ve ince kenarlıkla küçük resmi göstermek
- - Başlık ve kanalı göstermek; dokununca açmak; bağlam menüsü eylemleri
- - Gerektiğinde canlı/shorts belirteçlerini göstermek
- Nerede Kullanılır: Ana/Shorts gridleri ve ilgili bölümler.
+ Overview / Genel Bakış
+ EN: Shorts card UI with thumbnail, title, channel, and quick actions.
+ TR: Küçük resim, başlık, kanal ve hızlı eylemler içeren Shorts kartı.
 */
 
 import SwiftUI
@@ -29,7 +17,7 @@ struct ShortsCardView: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
-            // Thumbnail - Dikey format
+            // EN: Vertical thumbnail layout for Shorts. TR: Shorts için dikey küçük resim düzeni.
             ZStack(alignment: .bottomTrailing) {
                 AsyncImage(url: URL(string: video.thumbnailURL)) { image in
                     image
@@ -43,7 +31,7 @@ struct ShortsCardView: View {
                 .clipped()
                 .cornerRadius(12)
                 .background(Color.black)
-                // Orta tık doğrudan görsel üzerinde de yeni sekme açsın
+                // EN: Middle-click on thumbnail opens in a new tab. TR: Küçük resimde orta tık yeni sekmede açar.
                 .overlay(
                     MouseOpenInNewTabCatcher {
                         if let idx = tabs.indexOfTab(forVideoId: video.id) {
@@ -55,7 +43,7 @@ struct ShortsCardView: View {
                     .frame(width: 160, height: 280)
                 )
 
-                // Shorts badge — normal video rozetleriyle aynı görünüm
+                // EN: Shorts badge styled like regular badges. TR: Normal rozetlerle aynı stilde Shorts rozeti.
                 HStack(spacing: 4) {
                     Image(systemName: "play.square.fill")
                         .font(.system(size: 12))
@@ -75,7 +63,7 @@ struct ShortsCardView: View {
                 .padding(.trailing, 8)
             }
 
-            // Video info
+            // EN: Basic title/channel/meta section. TR: Basit başlık/kanal/meta bölümü.
             VStack(alignment: .leading, spacing: 4) {
                 Text(video.title)
                     .font(.system(size: 13, weight: .medium))
@@ -147,7 +135,7 @@ struct ShortsCardView: View {
             }
         }
         .task(id: video.id) {
-            // Lazy avatar tamamlama: video.channelThumbnailURL boşsa tekil fetch yap
+            // EN: Lazy resolve channel avatar if missing. TR: Kanal avatarı boşsa tembel çözümleme yap.
             if video.channelThumbnailURL.isEmpty {
                     if let info = await youtubeAPI.quickChannelInfo(channelId: video.channelId), !info.thumbnailURL.isEmpty {
                     await MainActor.run { self.resolvedThumb = info.thumbnailURL }

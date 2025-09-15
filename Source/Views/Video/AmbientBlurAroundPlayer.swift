@@ -1,33 +1,23 @@
 /*
- File Overview (EN)
- Purpose: Ambient blurred background effect around the video player, derived from sampled frame colors.
- Key Responsibilities:
- - Sample colors from the player and generate a subtle blurred backdrop
- - Animate appearance/disappearance and respond to theme changes
- - Remain lightweight so it doesn’t affect playback performance
- Used By: VideoEmbedView and related player surfaces.
-
- Dosya Özeti (TR)
- Amacı: Oyuncu etrafında, örneklenen kare renklerinden türetilen ortam bulanık arka plan efekti.
- Ana Sorumluluklar:
- - Oynatıcıdan renk örnekleyip yumuşak bulanık arka plan üretmek
- - Görünümün açılıp kapanmasını canlandırmak ve tema değişikliklerine tepki vermek
- - Oynatma performansını etkilemeyecek kadar hafif kalmak
- Nerede Kullanılır: VideoEmbedView ve ilgili oynatıcı yüzeyleri.
+ Overview / Genel Bakış
+ EN: Ambient blurred backdrop around the player, tinted by sampled frame colors; lightweight and purely visual.
+ TR: Oynatıcı etrafında, kare renklerinden tonlanan hafif bir bulanık arka plan; yalnızca görsel amaçlı ve hafif.
 */
 
+// EN: SwiftUI imports for view composition. TR: Görünüm bileşimi için SwiftUI içe aktarımları.
 import SwiftUI
 
-// Shorts tarzı çevresel blur'u sadece video çerçevesinin etrafında göstermek için yardımcı view
+// EN: Helper view that renders a soft ambient blur around the video frame. TR: Video çerçevesinin etrafında yumuşak bir çevresel blur oluşturan yardımcı görünüm.
 struct AmbientBlurAroundPlayer: View {
     let urlString: String
     var cornerRadius: CGFloat = 12
-    // Blur'un çerçeveden ne kadar dışarı taşacağını belirler
+    // EN: How far the blur extends beyond the frame. TR: Blur’un çerçevenin dışına ne kadar taşacağı.
     var spread: CGFloat = 180
-    // Dinamik renk (video karesinden) verildiğinde, üzerine yumuşak bir renk overlay uygular
+    // EN: Optional dynamic tint derived from sampled frame colors. TR: Örneklenen kare renklerinden türetilebilen isteğe bağlı dinamik tonlama.
     var dynamicTint: Color? = nil
 
     var body: some View {
+        // EN: Expand and blur an image, then mask to a rounded shape around the player. TR: Görseli genişletip blur uygular, sonra oynatıcı çevresinde yuvarlatılmış bir şekille maske uygular.
         GeometryReader { geo in
             let w = geo.size.width
             let h = geo.size.height
@@ -40,26 +30,29 @@ struct AmbientBlurAroundPlayer: View {
                     .scaledToFill()
                     .frame(width: expandedW, height: expandedH)
                     .clipped()
+                    // EN: Heavy blur to create soft ambient glow. TR: Yumuşak çevresel parıltı için güçlü blur.
                     .blur(radius: 50)
                     .saturation(0.95)
                     .overlay(
                         ZStack {
+                            // EN: Apply dynamic tint if provided. TR: Varsa dinamik tonu uygula.
                             if let tint = dynamicTint {
                                 tint.opacity(0.35)
                                     .transition(.opacity)
                                     .animation(.easeInOut(duration: 0.35), value: dynamicTint)
                             }
+                            // EN: Subtle darkening to prevent washed-out look. TR: Soluk görünümü engellemek için hafif karartma.
                             Color.black.opacity(0.2)
                         }
                     )
                     .mask(
-                        // Yalnızca video çerçevesinin etrafında yumuşak bir hale oluştur
+                        // EN: Soft halo mask around player area. TR: Oynatıcı alanı etrafında yumuşak hale maskesi.
                         RoundedRectangle(cornerRadius: cornerRadius + 8, style: .continuous)
                             .fill(Color.white)
                             .frame(width: w + spread, height: h + spread)
-                            .blur(radius: 65) // kenarlara doğru yumuşak geçiş
+                            .blur(radius: 65) // EN: Feathered edges. TR: Kenarlara doğru yumuşama.
                     )
-                    .offset(x: -spread, y: -spread) // genişlettiğimiz alanı merkeze hizala
+                    .offset(x: -spread, y: -spread) // EN: Recenter oversized layer. TR: Büyütülmüş katmanı tekrar ortala.
             } placeholder: {
                 Color.clear
             }

@@ -1,21 +1,10 @@
 /*
- File Overview (EN)
- Purpose: Left-side content stack for video pages: player, title, channel row, actions, and description/metadata.
- Key Responsibilities:
- - Compose player with surrounding UI and bind to app-wide playback state
- - Render title/channel row and action buttons with localization
- - Manage description expansion and related layout
- Used By: Video detail page main column.
-
- Dosya Özeti (TR)
- Amacı: Video sayfaları için sol taraftaki içerik yığını: oynatıcı, başlık, kanal satırı, eylemler ve açıklama/metadata.
- Ana Sorumluluklar:
- - Oynatıcıyı çevresindeki arayüzle birleştirmek ve uygulama çapı oynatma durumuna bağlamak
- - Başlık/kanal satırı ve eylem düğmelerini yerelleştirme ile sunmak
- - Açıklama genişletmeyi ve ilgili yerleşimi yönetmek
- Nerede Kullanılır: Video detay sayfasının ana sütunu.
+ Overview / Genel Bakış
+ EN: Left column of the video page: player section, title/channel row, actions, description and comments.
+ TR: Video sayfasının sol sütunu: oynatıcı bölümü, başlık/kanal satırı, eylemler, açıklama ve yorumlar.
 */
 
+// EN: SwiftUI view composing the main content column for the video page. TR: Video sayfasının ana içerik sütununu oluşturan SwiftUI görünümü.
 import SwiftUI
 
 struct LeftVideoContentView: View {
@@ -58,6 +47,7 @@ struct LeftVideoContentView: View {
     @State private var displayChannelTitleFallback: String = ""
     @State private var displayChannelIdFallback: String = ""
     
+    // EN: Comment sort options and localized labels. TR: Yorum sıralama seçenekleri ve yerelleştirilmiş etiketler.
     enum CommentSortOption: String, CaseIterable {
         case mostLiked
         case newest
@@ -89,6 +79,7 @@ struct LeftVideoContentView: View {
         }
     }
     
+    // EN: Apply local sorting for the 'Most liked' view; others rely on API order. TR: 'En beğenilen' için yerel sıralama; diğerleri API sırası.
     private var sortedComments: [YouTubeComment] {
         if commentSortOption == .mostLiked {
             return api.comments.sorted { $0.likeCount > $1.likeCount }
@@ -98,6 +89,7 @@ struct LeftVideoContentView: View {
     }
 
     // Canlı benzeri içerik algısı (kartlardaki ile benzer)
+    // EN: Heuristic to treat missing-duration items with live signals as live. TR: Süresi olmayan ve canlı sinyalleri taşıyan öğeleri canlı sayan sezgisel kontrol.
     private var isLiveLike: Bool {
     // Varsayılan: normal video kabul et. Sadece güçlü sinyaller varsa canlı göster.
     // 1) Süre varsa normal video
@@ -114,6 +106,7 @@ struct LeftVideoContentView: View {
     }
     
     // Görüntülenecek metinler: video içinde boşsa yerel fallback kullan
+    // EN: Display fallback values if the video fields are empty. TR: Video alanları boşsa geri dönüş değerlerini göster.
     private var displayedViewCount: String {
         let s = video.viewCount.trimmingCharacters(in: .whitespacesAndNewlines)
         return s.isEmpty ? displayViewCountFallback : video.viewCount
@@ -138,6 +131,7 @@ struct LeftVideoContentView: View {
     }
     
     // MARK: - Helpers (centralized)
+    // EN: Text helpers (sanitize and linkify timestamps). TR: Metin yardımcıları (temizle ve zaman damgalarını linke çevir).
     private func sanitizedHTML(_ text: String) -> String { TextUtilities.sanitizedHTML(text) }
     private func attributedWithTimestamps(_ raw: String) -> AttributedString { TextUtilities.linkifiedAttributedString(from: raw) }
     
@@ -145,6 +139,7 @@ struct LeftVideoContentView: View {
         ZStack(alignment: .topTrailing) {
         VStack(alignment: .leading, spacing: 16) {
             // Title or skeleton
+            // EN: Show skeleton title when the real title is not yet available. TR: Gerçek başlık henüz yoksa iskelet başlık göster.
             let needsTitleSkeleton = (video.title.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || video.title == "Video") && displayTitleFallback.isEmpty
             Group {
                 if needsTitleSkeleton {
@@ -233,6 +228,7 @@ struct LeftVideoContentView: View {
             }
             
             HStack(spacing: 8) {
+                // EN: Tap to open the channel panel for this video. TR: Bu videonun kanal panelini aç.
                 Button(action: {
                     // Kanal paneline geçiş için minimal model oluştur
                     let channel = YouTubeChannel(
@@ -280,6 +276,7 @@ struct LeftVideoContentView: View {
                 .buttonStyle(.plain)
 
                 // Subscribe button to the right of channel info
+                // EN: Subscribe/unsubscribe button bound to current channel state. TR: Mevcut kanal durumuna bağlı abone/çık düğmesi.
                 let isSubscribed = api.isSubscribedToChannel(effectiveChannelId)
                 Button(action: {
                     if let channel = api.channelInfo {
@@ -314,7 +311,7 @@ struct LeftVideoContentView: View {
                 Spacer()
                 
                 HStack(spacing: 16) {
-                    // Like/Dislike combined segmented capsule
+                    // EN: Like/Dislike segmented capsule (display only). TR: Beğen/Beğenme bölümlü kapsül (sadece görünüm).
                     HStack(spacing: 0) {
                         Button(action: {}) {
                             HStack(spacing: 8) {
@@ -356,7 +353,7 @@ struct LeftVideoContentView: View {
                     .frame(minWidth: 120)
                     .layoutPriority(2)
                     
-                    // Share button with capsule background
+                    // EN: Share button (copy link or open in YouTube). TR: Paylaş düğmesi (link kopyala veya YouTube’da aç).
                     Button(action: { showShareMenu.toggle() }) {
                         HStack(spacing: 8) {
                             Image(systemName: "square.and.arrow.up").font(.system(size: 18))
@@ -392,7 +389,7 @@ struct LeftVideoContentView: View {
                         .frame(width: 200)
                     }
 
-                    // Play in Mini (audio-only bottom bar) — right of Share
+                    // EN: Start mini audio player at the current timestamp and close this panel. TR: Geçerli zamanda mini ses oynatıcıyı başlat ve paneli kapat.
                     Button(action: {
                         // 1) Mevcut zamanı yakala (son bilinen değer üzerinden de güvence al)
                         let startAt = max(0, getCurrentTime?() ?? 0)
@@ -439,7 +436,7 @@ struct LeftVideoContentView: View {
                     }
                     .buttonStyle(.plain)
 
-                    // Playlist button — opens add-to-playlist popover
+                    // EN: Add to playlist popover and quick create. TR: Playlist’e ekle açılır penceresi ve hızlı oluşturma.
                     Button(action: { showPlaylistPopover.toggle() }) {
                         HStack(spacing: 8) {
                             Image(systemName: "music.note.list").font(.system(size: 18))
@@ -537,7 +534,7 @@ struct LeftVideoContentView: View {
                         .onAppear { newPlaylistNameFocused = true }
                     }
 
-                    // Yorumları göster/gizle: yalnız ikon, diğerleriyle aynı yükseklik
+                    // EN: Toggle comments section visibility. TR: Yorumlar bölümünün görünürlüğünü aç/kapat.
                     Button(action: {
                     showComments.toggle()
                         if showComments {
@@ -562,7 +559,7 @@ struct LeftVideoContentView: View {
                 if isLiveLike { api.fetchLiveViewersIfNeeded(videoId: video.id) }
             }
             
-            // Description with manual truncation & real expansion
+            // EN: Description area with manual truncation and real expansion on demand. TR: İstekle gerçek genişleme ve manuel kısaltmalı açıklama alanı.
             VStack(alignment: .leading, spacing: 8) {
                 // Tüm açıklamayı sanitize et (HTML <br> -> \n, anchor strip vs.) sonra uzunluk / satır hesapla
                 let rawDescription = fullDescription ?? video.description
@@ -584,7 +581,7 @@ struct LeftVideoContentView: View {
                     }
                     return trimmed
                 }()
-                // Zaman damgalarını linke çevir (aynı yorumlarda yaptığımız gibi)
+                // EN: Linkify timestamps; clicking posts a seek notification. TR: Zaman damgalarını linke çevir; tıklayınca arama bildirimi gönderir.
                 Text(attributedWithTimestamps(displayedText))
                     .font(.body)
                     .environment(\.openURL, OpenURLAction { url in
@@ -632,12 +629,12 @@ struct LeftVideoContentView: View {
                 RoundedRectangle(cornerRadius: 10).stroke(Color.secondary.opacity(0.15))
             )
             
-            // Yorumlar bölümü görünürlüğü
+            // EN: Comments visibility divider (animated). TR: Yorum görünürlüğü ayırıcı (animasyonlu).
             Divider().padding(.vertical, 8)
                 .opacity(showComments ? 1 : 0)
                 .animation(.easeInOut(duration: 0.15), value: showComments)
             
-            // Comments header (yalnızca görünürken)
+            // EN: Comments header and sort popover (visible only when comments are shown). TR: Yorumlar başlığı ve sıralama açılır penceresi (yalnız görünürken).
             if showComments {
                 HStack {
                     Text(i18n.t(.comments)).font(.headline)
@@ -683,6 +680,7 @@ struct LeftVideoContentView: View {
                 }
             }
             
+            // EN: Empty state vs. list of comments and replies. TR: Boş durum ile yorum/yanıt listesi ayrımı.
             if showComments && sortedComments.isEmpty {
                 Text(i18n.t(.comments))
                     .foregroundColor(.secondary)
@@ -847,6 +845,7 @@ struct LeftVideoContentView: View {
                     .padding(.vertical, 6)
                 }
                 
+                // EN: Load more comments until continuation is exhausted. TR: Devam jetonu bitene kadar daha fazla yorum yükle.
                 Button(action: {
                     if api.nextCommentsPageToken != nil {
                         api.fetchComments(videoId: video.id, append: true, sortOrder: commentSortOption.apiParameter)
@@ -886,8 +885,8 @@ struct LeftVideoContentView: View {
             api.fetchLikeCountIfNeeded(videoId: video.id)
             if isLiveLike { api.fetchLiveViewersIfNeeded(videoId: video.id) }
         }
-        // Toggle değişince (true olduğunda) yorumları yükle
-    .onChange(of: showComments) { _, newVal in
+        // EN: Lazy-load comments on first toggle. TR: İlk açılışta yorumları tembel yükle.
+        .onChange(of: showComments) { _, newVal in
             if newVal {
                 api.fetchComments(videoId: video.id, append: false, sortOrder: commentSortOption.apiParameter)
             }
@@ -899,6 +898,7 @@ struct LeftVideoContentView: View {
 
 // MARK: - Full Description Fetch
 private extension LeftVideoContentView {
+    // EN: Fetch and cache the full description when expanded or heuristically needed. TR: Genişletildiğinde veya sezgisel olarak gerektiğinde tam açıklamayı getir ve önbelleğe al.
     func fetchFullDescriptionIfNeeded(force: Bool) {
         // Yeni mantık: Açıklama genişletildiğinde her zaman (bir kez) uzun açıklamayı dene.
         guard fullDescription == nil, !isFetchingFullDescription else { return }
@@ -935,6 +935,7 @@ private extension LeftVideoContentView {
     }
     
     // Playlist modunda başlangıçta viewCount/publishedAt boş gelebilir; panelde yerel meta ile doldur.
+    // EN: Fill missing view/date/title/channel fields using fresh metadata. TR: Eksik görüntüleme/tarih/başlık/kanal alanlarını güncel metadata ile doldur.
     func fetchDisplayMetaIfNeeded() async {
         let needsView = video.viewCount.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
         let needsDate = video.publishedAt.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
@@ -972,6 +973,7 @@ extension Notification.Name {
 // MARK: - Overlay (Toast)
 extension LeftVideoContentView {
     @ViewBuilder
+    // EN: Small toast shown after adding to a playlist. TR: Playlist’e eklendikten sonra gösterilen küçük bildirim.
     private func toastOverlay() -> some View {
         ZStack(alignment: .topTrailing) {
             if showAddedToast {

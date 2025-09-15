@@ -1,18 +1,7 @@
-
 /*
- File Overview (EN)
- Purpose: Row component representing a single channel search result with thumbnail, title, and actions.
- Key Responsibilities:
- - Display channel identity and basic stats
- - Provide actions like open details or subscribe
- Used By: ChannelSearchView.
-
- Dosya Özeti (TR)
- Amacı: Tek bir kanal arama sonucunu temsil eden satır bileşeni; küçük resim, başlık ve eylemler içerir.
- Ana Sorumluluklar:
- - Kanal kimliğini ve temel istatistikleri göstermek
- - Detayları açma veya abone olma gibi eylemler sağlamak
- Nerede Kullanılır: ChannelSearchView.
+ Overview / Genel Bakış
+ EN: Row for a single channel search result.
+ TR: Tek bir kanal arama sonucu satırı.
 */
 
 import SwiftUI

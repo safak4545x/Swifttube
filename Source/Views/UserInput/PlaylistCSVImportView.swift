@@ -1,38 +1,36 @@
 /*
- File Overview (EN)
- Purpose: CSV import UI for local playlists; parse, validate, and create or update playlists from user-provided files.
- Key Responsibilities:
- - Let users pick CSV files and parse rows with robust error handling
- - Create new playlists or append items while avoiding duplicates
- - Show progress and result summaries to the user
- Used By: Playlist management workflows under Settings or context menus.
-
- Dosya Özeti (TR)
- Amacı: Yerel oynatma listeleri için CSV içe aktarma arayüzü; kullanıcının verdiği dosyalardan ayrıştırıp liste oluşturmak/güncellemek.
- Ana Sorumluluklar:
- - Kullanıcıların CSV dosyası seçmesine izin vermek ve satırları sağlam hata ele alımıyla ayrıştırmak
- - Yeni oynatma listeleri oluşturmak veya kopyaları önleyerek öğeler eklemek
- - Kullanıcıya ilerleme ve sonuç özetleri göstermek
- Nerede Kullanılır: Ayarlar veya bağlam menülerindeki oynatma listesi yönetimi akışlarında.
+ Overview / Genel Bakış
+ EN: CSV import UI for local playlists; parse tokens and import robustly with drag & drop.
+ TR: Yerel çalma listeleri için CSV içe aktarma arayüzü; belirteçleri ayrıştırır ve sürükle-bırak ile içe aktarır.
 */
 
+// EN: UI framework and UTType for file drops. TR: UI çerçevesi ve dosya bırakma için UTType.
 import SwiftUI
 import UniformTypeIdentifiers
 
+// EN: Modal view to import playlists from a CSV file. TR: CSV dosyasından playlist içe aktaran modal görünüm.
 struct PlaylistCSVImportView: View {
+    // EN: Localization provider. TR: Yerelleştirme sağlayıcı.
     @EnvironmentObject var i18n: Localizer
+    // EN: Service to import parsed tokens. TR: Ayrıştırılan belirteçleri içe aktaran servis.
     @ObservedObject var youtubeAPI: YouTubeAPIService
+    // EN: Controls modal presentation. TR: Modal gösterimini kontrol eder.
     @Binding var isPresented: Bool
+    // EN: Drag state for drop target. TR: Bırakma hedefi için sürükleme durumu.
     @State private var isDragOver = false
+    // EN: Processing indicator and status text. TR: İşleme göstergesi ve durum metni.
     @State private var isProcessingCSV = false
     @State private var csvProcessMessage = ""
+    // EN: Post-drop state and summary. TR: Bırakma sonrası durum ve özet.
     @State private var csvFileDropped = false
     @State private var csvFileName = ""
     @State private var csvPlaylistCount = 0
+    // EN: Tokens extracted from CSV (URLs or IDs). TR: CSV'den çıkarılan belirteçler (URL veya ID).
     @State private var playlistTokens: [String] = []
 
     var body: some View {
         VStack(spacing: 20) {
+            // EN: Modal title. TR: Modal başlığı.
             Text(i18n.t(.playlists))
                 .font(.title2)
                 .fontWeight(.semibold)
@@ -44,6 +42,7 @@ struct PlaylistCSVImportView: View {
                         .font(.headline)
                         .foregroundColor(.primary)
 
+                    // EN: Drop zone with visual feedback. TR: Görsel geri bildirimli bırakma alanı.
                     RoundedRectangle(cornerRadius: 12)
                         .fill(isDragOver ? Color.blue.opacity(0.2) : Color.gray.opacity(0.1))
                         .overlay(
@@ -55,6 +54,7 @@ struct PlaylistCSVImportView: View {
                         .overlay(
                             VStack(spacing: 8) {
                                 if isProcessingCSV {
+                                    // EN: Show progress and status while parsing. TR: Ayrıştırma sırasında ilerleme ve durum göster.
                                     VStack(spacing: 8) {
                                         ProgressView()
                                         Text(csvProcessMessage)
@@ -63,6 +63,7 @@ struct PlaylistCSVImportView: View {
                                             .multilineTextAlignment(.center)
                                     }
                                 } else if csvFileDropped {
+                                    // EN: Show file summary after successful drop. TR: Başarılı bırakma sonrası dosya özetini göster.
                                     VStack(spacing: 8) {
                                         Image(systemName: "checkmark.circle.fill")
                                             .font(.system(size: 30))
@@ -75,6 +76,7 @@ struct PlaylistCSVImportView: View {
                                             .foregroundColor(.secondary)
                                     }
                                 } else {
+                                    // EN: Idle hint with example filename. TR: Örnek dosya adıyla bekleme ipucu.
                                     VStack(spacing: 8) {
                                         Image(systemName: "doc.badge.plus")
                                             .font(.system(size: 30))
@@ -90,6 +92,7 @@ struct PlaylistCSVImportView: View {
                             }
                         )
                         .onDrop(of: [UTType.fileURL], isTargeted: $isDragOver) { providers in
+                            // EN: Handle file URL drop and start analysis. TR: Dosya URL bırakmayı işle ve analizi başlat.
                             handleCSVDrop(providers: providers)
                         }
 
@@ -109,6 +112,7 @@ struct PlaylistCSVImportView: View {
                 Button(i18n.t(.cancel)) { isPresented = false }
                     .buttonStyle(.bordered)
                 Button(i18n.t(.ok)) {
+                    // EN: Prepend filename token (used as playlist name) and import. TR: Dosya adını (playlist adı) başa ekle ve içe aktar.
                     var payload = playlistTokens
                     if !csvFileName.isEmpty {
                         let title = URL(fileURLWithPath: csvFileName).deletingPathExtension().lastPathComponent
@@ -126,6 +130,7 @@ struct PlaylistCSVImportView: View {
     .background(Color(NSColor.controlBackgroundColor))
     }
 
+    // EN: Accept a dropped file URL and kick off CSV analysis. TR: Bırakılan dosya URL'sini kabul edip CSV analizini başlat.
     private func handleCSVDrop(providers: [NSItemProvider]) -> Bool {
         guard let provider = providers.first else { return false }
         if provider.hasItemConformingToTypeIdentifier(UTType.fileURL.identifier) {
@@ -148,6 +153,7 @@ struct PlaylistCSVImportView: View {
         return false
     }
 
+    // EN: Read CSV, tokenize robustly, and update UI state. TR: CSV'yi oku, sağlam biçimde belirteçle ve UI durumunu güncelle.
     private func analyzeCSVFile(url: URL) {
         isProcessingCSV = true
         csvProcessMessage = i18n.t(.processingCSV)
@@ -166,6 +172,8 @@ struct PlaylistCSVImportView: View {
 }
 
 // MARK: - Robust CSV parsing shared helper
+/// EN: Extract tokens from CSV lines: YouTube URLs, playlist IDs (PL/LL/UU/OL/FL/WL/RD), and 11-char video IDs.
+/// TR: CSV satırlarından belirteç çıkar: YouTube URL'leri, playlist ID'leri (PL/LL/UU/OL/FL/WL/RD) ve 11 karakterlik video ID'leri.
 private func robustCSVTokenize(content: String) -> [String] {
     var out = Set<String>()
     let lines = content.components(separatedBy: .newlines)
@@ -180,12 +188,12 @@ private func robustCSVTokenize(content: String) -> [String] {
             token = token.trimmingCharacters(in: CharacterSet(charactersIn: "\"'"))
             if token.isEmpty { continue }
             let lower = token.lowercased()
-            // Prefer URL passthrough
+            // EN: Keep YouTube URLs as-is; normalization happens upstream. TR: YouTube URL'lerini olduğu gibi bırak; normalize üstte yapılır.
             if lower.contains("youtu.be") || lower.contains("youtube.com") {
                 out.insert(token)
                 continue
             }
-            // Playlist ID prefixes
+            // EN: Detect playlist IDs by common prefixes. TR: Playlist ID'lerini yaygın öneklerle saptar.
             if token.count >= 2 {
                 let prefixes = ["PL","LL","UU","OL","FL","RD"]
                 if prefixes.contains(where: { token.hasPrefix($0) }) || token == "WL" {
@@ -193,7 +201,7 @@ private func robustCSVTokenize(content: String) -> [String] {
                     continue
                 }
             }
-            // 11-char video id
+            // EN: 11-char video ID via regex. TR: Regex ile 11 karakterlik video ID.
             if token.count == 11, let re = idRegex {
                 let ns = token as NSString
                 if re.firstMatch(in: token, range: NSRange(location: 0, length: ns.length)) != nil {

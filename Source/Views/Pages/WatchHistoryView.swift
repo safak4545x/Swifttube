@@ -1,17 +1,7 @@
 /*
- File Overview (EN)
- Purpose: Displays the user's watch history with consistent card layout and allows reopening videos in the overlay panel.
- Key Responsibilities:
- - List watch history videos in an adaptive grid
- - Open selected video in the inline panel and update history
- Used By: MainContentView when History is selected.
-
- Dosya Özeti (TR)
- Amacı: Kullanıcının izleme geçmişini tutarlı kart düzeniyle listeleyen sayfa; videoları panelde yeniden açma imkanı sağlar.
- Ana Sorumluluklar:
- - Uyarlanabilir ızgarada geçmiş videoları listelemek
- - Seçilen videoyu satır içi panelde açmak ve geçmişi güncellemek
- Nerede Kullanılır: MainContentView’de Geçmiş seçiliyken.
+ Overview / Genel Bakış
+ EN: Watch History page listing previously watched videos with actions.
+ TR: İzleme Geçmişi sayfası; geçmiş videoları eylemlerle listeler.
 */
 
 import SwiftUI
@@ -37,7 +27,7 @@ struct WatchHistoryView: View {
                     
                     Spacer()
                     
-            // Auto Import button
+            // EN: Auto Import button (drop HTML to parse history). TR: Otomatik içe aktar (HTML sürükle-bırak).
                     Button(action: {
                         showingImportPanel = true
                     }) {
@@ -117,7 +107,7 @@ struct WatchHistoryView: View {
                                 youtubeAPI: youtubeAPI
                             )
                             .onTapGesture {
-                                // Video tekrar geçmişe ekle (en üste taşı)
+                                // EN: Re-add to history to bump it to top. TR: Geçmişte en üste taşımak için tekrar ekle.
                                 youtubeAPI.addToWatchHistory(video)
                                 selectedVideo = video
                             }

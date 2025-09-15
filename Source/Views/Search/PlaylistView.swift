@@ -1,19 +1,7 @@
 /*
- File Overview (EN)
- Purpose: Detailed playlist view showing videos, total counts, and providing play/add actions with overlay or tab integration.
- Key Responsibilities:
- - Ensure playlist items are loaded and enriched on demand
- - Show adaptive list/grid and open videos in overlay or tabs
- - Expose actions (Play, Add to library) consistent with app flows
- Used By: Search results and user library entries.
-
- Dosya Özeti (TR)
- Amacı: Playlist detay görünümü; videoları, toplam sayıları gösterir ve oynat/ekle eylemlerini overlay ya da sekmeyle bütünleştirir.
- Ana Sorumluluklar:
- - İhtiyaca göre playlist öğelerini yükleyip zenginleştirmek
- - Uyarlanabilir liste/ızgara gösterip videoları overlay veya sekmede açmak
- - Uygulama akışlarıyla tutarlı eylemler sunmak (Oynat, Kütüphaneye ekle)
- Nerede Kullanılır: Arama sonuçları ve kullanıcı kütüphanesi girişlerinde.
+ Overview / Genel Bakış
+ EN: Detailed playlist view with counts, items, and play/add actions.
+ TR: Sayımlar, öğeler ve oynat/ekle eylemleri içeren playlist detayı.
 */
 
 import SwiftUI
@@ -215,7 +203,7 @@ struct PlaylistView: View {
                     .foregroundColor(.secondary)
                 }
                 Spacer()
-                // Green circular Play button (explicit control)
+                // EN: Green circular Play button (overlay/tab). TR: Yeşil dairesel Oynat düğmesi (overlay/sekme).
                 if showPlayButton {
                     ZStack {
                         Image(systemName: "play.fill")
@@ -265,7 +253,7 @@ struct PlaylistView: View {
                     #endif
                     .help(i18n.t(.play))
 
-                    // Mini player button (UI-only). Click triggers the same visual animation as Play.
+                    // EN: Mini player button (audio playlist start). TR: Mini oynatıcı düğmesi (ses playlisti başlatır).
                     ZStack {
                         Image(systemName: "play.square.stack")
                             .foregroundColor(.white)
@@ -310,7 +298,7 @@ struct PlaylistView: View {
                     #endif
                     .help("Mini Player")
                 }
-                // Arama sonuçlarında: kullanıcı listesine ekle butonu ya da eklendiyse tik
+                // EN: In search results: show add/remove to user library. TR: Arama sonuçlarında: kütüphaneye ekle/kaldır.
                 if isSearchResult {
                         if isAlreadyAdded {
                             HStack(spacing: 8) {
@@ -406,7 +394,7 @@ struct PlaylistView: View {
         ScrollViewReader { proxy in
         ScrollView {
             LazyVStack(spacing: 10) {
-                            // Numbered, compact rows without thumbnails
+                            // EN: Numbered compact rows without thumbnails. TR: Küçük resimsiz numaralı kompakt satırlar.
         ForEach(Array(videos.enumerated()), id: \.offset) { idx, v in
                                 // Skip placeholder rows that only carry count
                                 if !(v.title.isEmpty && v.channelTitle.isEmpty) {
@@ -460,7 +448,7 @@ struct PlaylistView: View {
                                     .onTapGesture { if let onRowLeftClick { onRowLeftClick(v.id, idx) } else { NotificationCenter.default.post(name: .openPlaylistModeOverlay, object: nil, userInfo: ["playlistId": playlist.id, "videoId": v.id, "index": idx]) } }
                                     #endif
                                     .contentShape(Rectangle())
-                                    // Infinite scroll trigger when last visible real item appears
+                                    // EN: Infinite scroll trigger when last real item appears. TR: Son gerçek öğe göründüğünde sonsuz kaydırma tetikleyicisi.
                                     .onAppear {
                                         let realCount = videos.filter { !($0.title.isEmpty && $0.channelTitle.isEmpty) }.count
                                         if idx >= realCount - 1 {

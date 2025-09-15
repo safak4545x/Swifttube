@@ -1,19 +1,7 @@
 /*
- File Overview (EN)
- Purpose: Responsive grid layout for video cards; adapts number of columns based on container width.
- Key Responsibilities:
- - Compute columns and spacing; render VideoCardView items
- - Provide skeleton placeholders while loading
- - Handle selection and open actions via bindings
- Used By: Home page and search results.
-
- Dosya Özeti (TR)
- Amacı: Video kartları için duyarlı grid yerleşimi; konteyner genişliğine göre sütun sayısını uyarlar.
- Ana Sorumluluklar:
- - Sütun ve boşlukları hesaplayıp VideoCardView ögelerini çizmek
- - Yükleme sırasında iskelet yer tutucular göstermek
- - Bağlantılar üzerinden seçim ve açma eylemlerini yönetmek
- Nerede Kullanılır: Ana sayfa ve arama sonuçları.
+ Overview / Genel Bakış
+ EN: Responsive video card layout with badges and context menu.
+ TR: Rozetler ve bağlam menülü duyarlı video kart yerleşimi.
 */
 
 import SwiftUI
@@ -45,7 +33,7 @@ struct VideoCardGridView: View {
                         .stroke(Color.primary.opacity(0.15), lineWidth: 2)
                 )
 
-                // Duration badge like on Home cards
+                // EN: Duration badge (hidden for live/shorts). TR: Süre rozeti (canlı/shorts için gizlenir).
                 if showDurationBadge {
                     VStack {
                         HStack {
@@ -131,7 +119,7 @@ struct VideoCardGridView: View {
                 NSPasteboard.general.setString(link, forType: .string)
             }
             Button(i18n.t(.openInYouTube)) {
-                let link = isShortsLikely ? "https://www.youtube.com/shorts/\(video.id)" : "https://www.youtube.com/watch?v=\(video.id)"
+                let link = isShortsLikely ? "https://www.youtube.com/shorts/\(video.id)" : "https://www.youtube.com/watch?v=\(video.id)" // EN: Respect shorts vs regular link. TR: Shorts/normal bağlantıya göre seç.
                 if let url = URL(string: link) { NSWorkspace.shared.open(url) }
             }
         }
@@ -145,7 +133,7 @@ private extension VideoCardGridView {
         if lower.contains("#short") || lower.contains("#shorts") || lower.contains(" shorts ") || lower.hasPrefix("shorts") {
             return true
         }
-        return isUnderOneMinute(video)
+        return isUnderOneMinute(video) // EN: Fallback to duration <= 60s. TR: Yedek koşul: süre <= 60sn.
     }
     var isLiveLike: Bool {
         // Heuristic similar to VideoCardView

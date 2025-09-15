@@ -1,25 +1,14 @@
 /*
- File Overview (EN)
- Purpose: Main in-tab video player built on LightYouTubeEmbed; handles play/pause, seek, ambient blur, and inline/mini/fullscreen transitions.
- Key Responsibilities:
- - Control playback and time updates; route events to mini/fullscreen windows
- - Manage overlay controls visibility with mouse inactivity heuristics
- - Support color sampling for ambient UI and safe destroy/recreate cycles
- Used By: Video detail pages and overlay player with shared state.
-
- Dosya Özeti (TR)
- Amacı: LightYouTubeEmbed tabanlı ana sekme içi oynatıcı; oynat/duraklat, ileri/geri sarma, ambient blur ve mini/tam ekran geçişleri.
- Ana Sorumluluklar:
- - Oynatma ve zaman güncellemelerini yönetmek; olayları mini/tam ekran pencerelerine yönlendirmek
- - Fare hareketsizliği sezgileri ile kaplama kontrollerinin görünürlüğünü yönetmek
- - Ortam rengi örneklemeyi ve güvenli yok et/yeniden oluştur döngülerini desteklemek
- Nerede Kullanılır: Video detay sayfaları ve ortak durumlu overlay oynatıcı.
+ Overview / Genel Bakış
+ EN: Main inline video player built on LightYouTubeEmbed; manages playback, seeking, ambient blur, and mini/fullscreen handoffs.
+ TR: LightYouTubeEmbed üzerine kurulu ana satır içi oynatıcı; oynatma, atlama, ambient blur ve mini/tam ekran geçişlerini yönetir.
 */
 
 
+// EN: SwiftUI view hosting the embed and overlays. TR: Gömülü oynatıcı ve kaplamaları barındıran SwiftUI görünümü.
 import SwiftUI
 
-// LightYouTubeEmbed tabanlı yeni VideoEmbedView
+// EN: Player view that wraps LightYouTubeEmbed with extra UX. TR: LightYouTubeEmbed'i ek UX ile saran oynatıcı görünüm.
 struct VideoEmbedView: View {
 	@EnvironmentObject var i18n: Localizer
 	let videoId: String
@@ -58,6 +47,7 @@ struct VideoEmbedView: View {
 	#endif
 
 	// Dışarıya dinamik renk yayınlamak için (opsiyonel)
+	// EN: Optional ambient color sampling callback. TR: İsteğe bağlı ortam renk örnekleme geri çağrısı.
 	var onColorSampled: ((NSColor) -> Void)? = nil
 
 	init(videoId: String, shouldPlay: Binding<Bool>, showAmbientBlur: Binding<Bool>, initialStartAt: Double? = nil, onColorSampled: ((NSColor) -> Void)? = nil, onTimeUpdate: ((Double) -> Void)? = nil) {
@@ -73,7 +63,7 @@ struct VideoEmbedView: View {
 
 	var body: some View {
 		ZStack {
-			// Recreated when reloadToken changes (after destroy of off-screen players)
+			// EN: Embed view; recreated on reloadToken (after destroy). TR: Gömülü görünüm; reloadToken ile (destroy sonrası) yeniden oluşturulur.
 			LightYouTubeEmbed(
 				videoId: videoId,
 				startSeconds: relaunchStartSeconds,
@@ -94,7 +84,7 @@ struct VideoEmbedView: View {
 					.overlay(ProgressView().scaleEffect(1.05))
 			}
 		}
-		// Alt-orta kontrol butonları (idle/exit ile otomatik gizlenir)
+		// EN: Bottom inline controls that auto-hide on idle. TR: Boşta otomatik gizlenen alt satır içi kontroller.
 		.overlay(alignment: .bottom) {
 			if !isInMiniPlayer && !isFullscreenForThisVideo {
 						HStack(spacing: 12) {
@@ -195,7 +185,7 @@ struct VideoEmbedView: View {
 			.offset(y: showControls ? 0 : 24)
 			}
 		}
-		// Mouse etkinliklerini dinle ve otomatik gizleme zamanlayıcısını yönet
+		// EN: Track mouse activity to auto-hide controls. TR: Kontrolleri otomatik gizlemek için fare etkinliğini izle.
 		.overlay {
 			MouseActivityView { event in
 				switch event {
@@ -209,7 +199,7 @@ struct VideoEmbedView: View {
 			}
 			.allowsHitTesting(false) // Görünmez katman; tıklamayı engellemesin
 		}
-		// PiP aktifken üst katmanda banner göster (spinner'ın da üstünde)
+		// EN: Show PiP banner when mini player is active. TR: Mini oynatıcı aktifken PiP banner'ı göster.
 		.overlay {
 			if isInMiniPlayer {
 				ZStack {
@@ -231,7 +221,7 @@ struct VideoEmbedView: View {
 				.allowsHitTesting(false)
 			}
 		}
-		// Fullscreen aktifken normal panelde banner göster ve alt kontroller zaten gizlendi
+		// EN: Show fullscreen banner while inline controls remain hidden. TR: Tam ekran banner'ı göster; satır içi kontroller gizli kalır.
 		.overlay {
 			if isFullscreenForThisVideo {
 				ZStack {
@@ -254,7 +244,7 @@ struct VideoEmbedView: View {
 			}
 		}
 		.onAppear {
-			// If no explicit start was provided (e.g., from fullscreen/miniplayer return), try resuming from persisted progress
+			// EN: If no explicit start, resume from persisted progress when possible. TR: Açık bir başlangıç yoksa, mümkünse kalınan yerden devam et.
 			Task {
 				if relaunchStartSeconds <= 0 {
 					if let saved = await PlaybackProgressStore.shared.load(videoId: videoId), saved > 1 {
@@ -266,7 +256,7 @@ struct VideoEmbedView: View {
 					}
 				}
 			}
-			// Start periodic progress writes while the view is visible
+			// EN: Periodically persist playback progress and notify parent. TR: Oynatma ilerlemesini periyodik kaydet ve ebeveyne bildir.
 			progressTimer?.invalidate()
 			progressTimer = Timer.scheduledTimer(withTimeInterval: 3.0, repeats: true) { _ in
 				Task { @MainActor in
@@ -278,14 +268,14 @@ struct VideoEmbedView: View {
 				}
 			}
 		}
-		// Push fine-grained time updates to parent as the embed reports them
+		// EN: Forward precise time updates to parent. TR: Hassas zaman güncellemelerini ebeveyne aktar.
 		.onReceive(controller.$lastKnownTime) { t in
 			onTimeUpdate?(t)
 		}
 		.onChange(of: shouldPlay) { _, play in
 			Task { @MainActor in
 				if play {
-					// Eğer destroy edilmişse (webView yok) yeniden yarat
+					// EN: If destroyed (no webView), recreate; else just play. TR: Destroy edilmişse yeniden oluştur; değilse oynat.
 					if controller.isDestroyed {
 						isReady = false
 						reloadToken = UUID()
@@ -301,7 +291,7 @@ struct VideoEmbedView: View {
 		.onChange(of: videoId) { _, newId in
 			isReady = false
 			relaunchStartSeconds = 0
-			// Load saved progress for the new video and schedule a seek
+			// EN: For a new video, load saved progress and schedule seek. TR: Yeni video için kaydı yükleyip atlamayı planla.
 			Task {
 				if let saved = await PlaybackProgressStore.shared.load(videoId: newId), saved > 1 {
 					await MainActor.run {
@@ -311,7 +301,7 @@ struct VideoEmbedView: View {
 					}
 				}
 			}
-			// Yeni videoya geçildiğinde renk sampling'i yeniden başlat (ampul açıksa)
+			// EN: Restart color sampling after switching videos if enabled. TR: Video değişiminden sonra blur açıksa renk örneklemeyi yeniden başlat.
 			if showAmbientBlur {
 				Task { @MainActor in
 					// Eski timer'ı temizle ve yeni player yüklenmesine küçük bir gecikmeyle fırsat ver
@@ -325,7 +315,7 @@ struct VideoEmbedView: View {
 		}
 		.onReceive(NotificationCenter.default.publisher(for: .shortsResetVideoId)) { note in
 			guard let target = note.userInfo?["videoId"] as? String, target == videoId else { return }
-			// Off-screen veya reset istenen video: tamamen durdur ve destroy et
+			// EN: Off-screen or reset request: fully stop and destroy. TR: Ekran dışı veya reset isteği: tamamen durdur ve yok et.
 			Task { @MainActor in
 				controller.pause()
 				controller.destroy()
@@ -337,7 +327,7 @@ struct VideoEmbedView: View {
 				controller.destroy()
 			}
 		}
-		// Normal video panel kapatılırken spesifik videoyu durdur
+			// EN: Stop specific video when its panel closes. TR: Panel kapatılırken ilgili videoyu durdur.
 		.onReceive(NotificationCenter.default.publisher(for: .stopVideoId)) { note in
 			guard let target = note.userInfo?["videoId"] as? String, target == videoId else { return }
 			Task { @MainActor in
@@ -348,7 +338,7 @@ struct VideoEmbedView: View {
 		// Yorum / açıklama timestamp tıklanınca atlama
 		.onReceive(NotificationCenter.default.publisher(for: .seekToSeconds)) { note in
 			guard let secs = note.userInfo?["seconds"] as? Int else { return }
-			// let requestedVideoId = note.userInfo?["videoId"] as? String // not used here; MiniPlayer handles its own
+			// EN: Requested video id not used; mini/fullscreen handle their own. TR: İstenen video id kullanılmaz; mini/tam ekran kendi içinde yönetir.
 			#if canImport(AppKit)
 			// PiP açıkken inline player seek etmesin; MiniPlayerContent kendi içinde dinleyip uygular
 			if MiniPlayerWindow.shared.isPresented { return }
@@ -360,7 +350,7 @@ struct VideoEmbedView: View {
 				let target = Double(secs)
 				pendingSeekSeconds = target
 				seekRetryCount = 0
-				// Destroy edilmişse yeniden yarat sonra hazır olunca atla
+				// EN: If destroyed, recreate then seek when ready. TR: Destroy edilmişse yeniden yarat, hazır olunca atla.
 				if controller.isDestroyed {
 					isReady = false
 					reloadToken = UUID()
@@ -371,14 +361,14 @@ struct VideoEmbedView: View {
 		.onChange(of: isReady) { _, newVal in
 			if newVal {
 				attemptSeekIfPossible()
-				// Player hazır olduğunda ve oynatılacaksa sampling'i garantiye al
+				// EN: Ensure color sampling when player is ready and playing. TR: Player hazır ve oynuyorsa renk örneklemeyi garantiye al.
 				if showAmbientBlur && shouldPlay { controller.startColorSampling() }
 			}
 		}
 		.onDisappear {
 			hideWorkItem?.cancel()
 			progressTimer?.invalidate(); progressTimer = nil
-			// View sahneden kalkınca güvenli şekilde durdur/temizle
+			// EN: Safely stop/cleanup when view disappears (persist last timestamp). TR: Görünüm kapanınca güvenli durdur/temizle (son zamanı kaydet).
 			Task { @MainActor in
 				// Save one last time before destroying if we can read a timestamp
 				controller.currentTime { t in
@@ -398,7 +388,7 @@ struct VideoEmbedView: View {
 				}
 			}
 		}
-		// Controller'ın yayımladığı renkleri yakala ve dışarı ile paylaş
+			// EN: Relay sampled colors outward (ambient UI). TR: Örneklenen renkleri dışarı aktar (ambiyans arayüz).
 		.onReceive(controller.$sampledColor.removeDuplicates { lhs, rhs in
 			if let l = lhs, let r = rhs { return l == r }
 			return lhs == nil && rhs == nil
@@ -416,7 +406,7 @@ private extension VideoEmbedView {
 			if elapsed >= 3.0 {
 				withAnimation { showControls = false }
 			} else {
-				// Bekleme süresi dolmamışsa yeniden zamanla (drift'e karşı)
+				// EN: Reschedule until idle threshold reached (guards drift). TR: Eşik dolana kadar yeniden zamanla (sapmaları önler).
 				scheduleAutoHide()
 			}
 		}
@@ -427,7 +417,7 @@ private extension VideoEmbedView {
 	func hideImmediately() { withAnimation { showControls = false } }
 	@MainActor func attemptSeekIfPossible() {
 		guard let target = pendingSeekSeconds else { return }
-		// Player hazır değilse yeniden dene (en fazla 10 deneme ~2s)
+		// EN: Retry seeking until player is ready (short backoff). TR: Player hazır olana dek atlamayı yeniden dene (kısa bekleme).
 		if !isReady || controller.isDestroyed {
 			if seekRetryCount < 25 {
 				seekRetryCount += 1

@@ -1,19 +1,7 @@
 /*
- File Overview (EN)
- Purpose: Main video card used across the app; renders thumbnail, title, channel row, and quick actions.
- Key Responsibilities:
- - Display cached async thumbnail with aspect fit and border
- - Open video on click; support selection highlights and context menu
- - Show metadata (views/date) and subscription badges when applicable
- Used By: Home, related, search, and playlist item lists.
-
- Dosya Özeti (TR)
- Amacı: Uygulama genelinde kullanılan ana video kartı; küçük resim, başlık, kanal satırı ve hızlı eylemleri sunar.
- Ana Sorumluluklar:
- - Oran koruyan ve kenarlıklı önbellekli küçük resmi göstermek
- - Tıklanınca videoyu açmak; seçim vurguları ve bağlam menüsü desteklemek
- - Uygunsa metadata (görüntülenme/tarih) ve abonelik rozetlerini göstermek
- Nerede Kullanılır: Ana sayfa, ilgili, arama ve oynatma listesi öğe listeleri.
+ Overview / Genel Bakış
+ EN: Primary video card with thumbnail overlay title, badges, and context menu.
+ TR: Küçük resim üstü başlık, rozetler ve bağlam menülü ana video kartı.
 */
 
 import SwiftUI
@@ -48,7 +36,7 @@ struct VideoCardView: View {
     var body: some View {
     VStack(alignment: .leading, spacing: 10) {
             ZStack(alignment: .topTrailing) {
-                // Video thumbnail - tıklanabilir (başlık alt bantta gösterilir)
+                // EN: Clickable video thumbnail with title overlay. TR: Başlık overlay'li tıklanabilir küçük resim.
                 Button(action: {
                     selectedVideo = video
                 }) {
@@ -66,12 +54,12 @@ struct VideoCardView: View {
                         .background(Color.black)
                         .clipped()
                         .cornerRadius(12)
-                        // Kenarlık
+                        // EN: Subtle border for card look. TR: Kart görünümü için ince kenarlık.
                         .overlay(
                             RoundedRectangle(cornerRadius: 12)
                                 .stroke(Color.primary.opacity(0.15), lineWidth: 2)
                         )
-                        // Başlığı doğrudan görselin altına sabitle — CANLI/duration rozetlerinden bağımsız
+                        // EN: Title pinned on image bottom independent of badges. TR: Rozetlerden bağımsız altta sabit başlık.
                         .overlay(alignment: .bottomLeading) {
                             HStack(alignment: .bottom) {
                                 Text(video.title)
@@ -92,7 +80,7 @@ struct VideoCardView: View {
                             .padding(.bottom, 8)
                         }
 
-                        // Üst sağ köşe rozetleri (Abone + Canlı veya Süre)
+                        // EN: Top-right badges (subscription + live/duration). TR: Üst sağ rozetler (abonelik + canlı/süre).
                         VStack(alignment: .trailing, spacing: 6) {
                             if isFromSubscription {
                                 HStack(spacing: 4) {
@@ -162,7 +150,7 @@ struct VideoCardView: View {
                         NSCursor.arrow.set()
                     }
                 }
-                .overlay(MouseOpenInNewTabCatcher { // middle-click opens background tab
+                .overlay(MouseOpenInNewTabCatcher { // EN: Middle-click opens background tab. TR: Orta tık arka planda sekme açar.
                     if let idx = tabs.indexOfTab(forVideoId: video.id) {
                         // Already has tab: activate it
                         tabs.activeTabId = tabs.tabs[idx].id
@@ -231,7 +219,7 @@ struct VideoCardView: View {
                 }
                 .buttonStyle(.plain)
 
-                // Her zaman sabit yükseklikte bir meta satırı göster — canlı videolarda izleyici sayısını yaz
+                // EN: Fixed-height meta row; for live show viewers otherwise views/date. TR: Sabit yükseklikte meta; canlıda izleyici, diğerinde görüntülenme/tarih.
                 HStack(spacing: 6) {
                     if showLiveBadge {
                         // Küçük bir kırmızı nokta + izleyici sayısı (varsa)

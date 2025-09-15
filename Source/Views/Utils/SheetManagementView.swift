@@ -1,20 +1,7 @@
-
 /*
- File Overview (EN)
- Purpose: Page-level container managing overlay sheets/panels (video, channel, playlist) and shared UI like TabStrip and bottom player bar toggles.
- Key Responsibilities:
- - Host content and coordinate overlay presentation via bindings
- - Expose shared controls (tab strip, close actions) in a single place
- - Keep overlay state in sync across pages
- Used By: MainContentView and SubscriptionsView.
-
- Dosya Özeti (TR)
- Amacı: Sayfa düzeyinde overlay sheet/panel (video, kanal, playlist) yönetimini ve ortak UI'yi (TabStrip, alt çubuk) üstlenen konteyner.
- Ana Sorumluluklar:
- - İçeriği barındırıp binding’ler üzerinden overlay sunumunu koordine etmek
- - Ortak kontrolleri (sekme şeridi, kapatma) tek noktadan sağlamak
- - Overlay durumunu sayfalar arasında senkron tutmak
- Nerede Kullanılır: MainContentView ve SubscriptionsView.
+ Overview / Genel Bakış
+ EN: Page container managing video/channel/playlist overlays and shared UI (tab strip, bottom bar).
+ TR: Video/kanal/playlist overlay'lerini ve ortak UI'yi (sekme şeridi, alt çubuk) yöneten kapsayıcı.
 */
 
 import SwiftUI
@@ -24,12 +11,12 @@ struct SheetManagementView<Content: View>: View {
     let content: Content
     @EnvironmentObject private var tabs: TabCoordinator
     @EnvironmentObject private var audioPlayer: AudioPlaylistPlayer
-    // Control whether the global TabStrip should be shown from this wrapper
+    // EN: Controls whether global TabStrip is shown. TR: Global TabStrip'in görünürlüğünü kontrol eder.
     let showTabStrip: Bool
-    // Control whether the global BottomPlayerBar should be shown (top-level only)
+    // EN: Controls whether BottomPlayerBar is shown. TR: BottomPlayerBar'ın gösterimini kontrol eder.
     @Binding var showBottomPlayerBar: Bool
     
-    // Sheet states
+    // EN: Sheet and overlay states. TR: Sheet ve overlay durumları.
     @Binding var selectedVideo: YouTubeVideo?
     @Binding var showChannelSheet: Bool
     @Binding var selectedChannel: YouTubeChannel?
@@ -40,12 +27,12 @@ struct SheetManagementView<Content: View>: View {
     @Binding var showPlaylistView: Bool
     @Binding var showUserChannelInput: Bool
     @Binding var userChannelURL: String
-    // PiP dönüşü için opsiyonel resume time
+    // EN: Optional resume time when returning from PiP. TR: PiP dönüşünde opsiyonel devam süresi.
     var resumeSeconds: Binding<Double?>? = nil
     
     // API reference
     @ObservedObject var youtubeAPI: YouTubeAPIService
-    // Optional playlist context when opening VideoDetailView as overlay (non-tab)
+    // EN: Optional playlist context for overlay VideoDetailView. TR: Overlay VideoDetailView için opsiyonel playlist bağlamı.
     @Binding var overlayPlaylistContext: PlaylistContext?
     
     init(
@@ -123,7 +110,7 @@ struct SheetManagementView<Content: View>: View {
     
     var body: some View {
         content
-            // Video detail panel as full-page overlay
+            // EN: Video detail panel as full-page overlay. TR: Tam sayfa video detay paneli.
             .overlay(alignment: .center) {
                 if let video = selectedVideo {
                     GeometryReader { geo in
@@ -138,7 +125,7 @@ struct SheetManagementView<Content: View>: View {
                                     }
                                 },
                                 onOpenChannel: { channel in
-                                    // Video panelinden kanala geçiş
+                                    // EN: Switch from video panel to channel sheet. TR: Video panelinden kanal sheet'ine geç.
                                     withAnimation(.easeInOut) {
                                         selectedVideo = nil
                                         selectedChannel = channel
@@ -149,7 +136,7 @@ struct SheetManagementView<Content: View>: View {
                                     youtubeAPI.fetchChannelPopularVideos(channelId: channel.id)
                                 },
                                 onOpenVideo: { newVideo in
-                                    // Önerilen videoya tıklanınca ayni panelde yeni videoyu aç
+                                    // EN: Open suggested video in the same overlay panel. TR: Önerilen videoyu aynı panelde aç.
                                     withAnimation(.easeInOut) {
                                         // Eğer overlay playlist modu AKTİFSE ve tıklanan video o playlist'in içindeyse
                                         // bağlamı koru; aksi halde overlay modundan çık.
@@ -170,12 +157,12 @@ struct SheetManagementView<Content: View>: View {
                             // Video değiştiğinde görünümü yeniden kur ve onAppear tetiklensin
                             .id(video.id)
                             .onAppear {
-                                // Kullanıldıktan sonra temizle ki sonraki açılışlar 0'dan başlasın
+                                // EN: Clear resume time after use to start from 0 next time. TR: Kullanımdan sonra devam süresini temizle.
                                 resumeSeconds?.wrappedValue = nil
                             }
                         }
                         .frame(width: geo.size.width, height: geo.size.height)
-                        // Video paneli açılış/kapanış animasyonu (kayma + küçük ölçek + opacity)
+                        // EN: Overlay transition (slide + tiny scale + fade). TR: Overlay geçişi (kayma + küçük ölçek + solma).
                         .transition(
                             .asymmetric(
                                 insertion: .move(edge: .trailing)
@@ -196,7 +183,7 @@ struct SheetManagementView<Content: View>: View {
                     withAnimation(.easeInOut) { overlayPlaylistContext = nil }
                 }
             }
-            // Channel detail panel as full-page overlay (video panel ile aynı yaklaşım)
+            // EN: Channel detail as overlay (same approach as video panel). TR: Kanal detayı overlay (video paneliyle aynı yaklaşım).
             .overlay(alignment: .center) {
                 if showChannelSheet, let channel = selectedChannel {
                     GeometryReader { geo in
@@ -213,7 +200,7 @@ struct SheetManagementView<Content: View>: View {
                         .frame(width: geo.size.width, height: geo.size.height)
                         .transition(.move(edge: .trailing).combined(with: .opacity))
                         .onAppear {
-                            // Eski kanal popüler videolarını ve info'yu temizle (ChannelView kendi loadData çağıracak)
+                            // EN: Reset previous channel data; ChannelView will load fresh. TR: Eski kanal verisini sıfırla; ChannelView yenisini yükler.
                             youtubeAPI.currentChannelPopularVideos = []
                             youtubeAPI.channelInfo = nil
                         }
@@ -265,7 +252,7 @@ struct SheetManagementView<Content: View>: View {
                 )
                 .frame(minWidth: 600, minHeight: 500)
             }
-            // Global bottom area pinned: BottomPlayerBar (if requested) stacked above TabStrip
+            // EN: Global bottom area: BottomPlayerBar (optional) above TabStrip. TR: Global alt alan: TabStrip'in üstünde opsiyonel BottomPlayerBar.
             .safeAreaInset(edge: .bottom, spacing: 0) {
                 VStack(spacing: 0) {
                     if showBottomPlayerBar {

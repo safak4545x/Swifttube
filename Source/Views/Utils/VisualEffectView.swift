@@ -1,19 +1,8 @@
-
 import AppKit
 /*
- File Overview (EN)
- Purpose: NSVisualEffectView wrapper for SwiftUI, enabling macOS vibrancy/blur materials within SwiftUI views.
- Key Responsibilities:
- - Bridge AppKit NSVisualEffectView into SwiftUI
- - Expose material and blending mode configuration
- Used By: Overlays, headers, and buttons needing native blur.
-
- Dosya Özeti (TR)
- Amacı: SwiftUI içinde macOS canlılık/blur efektlerini kullanmak için NSVisualEffectView sarmalayıcısı.
- Ana Sorumluluklar:
- - AppKit NSVisualEffectView'i SwiftUI'ye köprülemek
- - Materyal ve karıştırma modu ayarlarını dışa açmak
- Nerede Kullanılır: Blur gereken overlay, başlık ve buton arkaplanlarında.
+ Overview / Genel Bakış
+ EN: SwiftUI wrapper for NSVisualEffectView to get native macOS blur/vibrancy.
+ TR: Yerel macOS blur/canlılık için NSVisualEffectView sarmalayıcısı.
 */
 
 import SwiftUI
@@ -35,7 +24,7 @@ struct VisualEffectView: NSViewRepresentable {
         let view = NSVisualEffectView()
         view.material = material
         view.blendingMode = blendingMode
-        view.state = .active
+        view.state = .active // EN: Keep effect active regardless of window focus. TR: Pencere odağından bağımsız aktif tut.
         return view
     }
 

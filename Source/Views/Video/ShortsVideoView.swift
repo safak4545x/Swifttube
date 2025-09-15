@@ -1,22 +1,11 @@
 
 /*
- File Overview (EN)
- Purpose: Container for Shorts list with per-item player instances, focus tracking, and context bar.
- Key Responsibilities:
- - Render vertically scrollable Shorts with per-item lifecycle
- - Track focus to start/stop playback and apply persistence
- - Offer quick actions: like, copy link, open channel, mute/repeat
- Used By: Shorts tab/page.
-
- Dosya Özeti (TR)
- Amacı: Öğeye özel oynatıcılar, odak takibi ve bağlam çubuğuyla Shorts liste konteyneri.
- Ana Sorumluluklar:
- - Dikey kaydırılabilir Shorts öğelerini, öğe başına yaşam döngüsüyle birlikte göstermek
- - Odağı takip ederek oynatmayı başlat/durdur ve kalıcılığı uygula
- - Hızlı eylemler: beğen, bağlantıyı kopyala, kanalı aç, sessize al/tekrar
- Nerede Kullanılır: Shorts sekmesi/sayfası.
+ Overview / Genel Bakış
+ EN: Shorts item container with per-item player, focus-driven playback, and action bar.
+ TR: Öğeye özel oynatıcı, odakla tetiklenen oynatma ve eylem çubuğuna sahip Shorts konteyneri.
 */
 
+// EN: SwiftUI/AppKit for overlay actions and system integrations. TR: Örtüşen eylemler ve sistem entegrasyonları için SwiftUI/AppKit.
 import SwiftUI
 import AppKit
 
@@ -36,37 +25,37 @@ struct ShortsVideoView: View {
     private let actionRightPadding: CGFloat = 6
     private let actionBottomLift: CGFloat = 140 // 64 -> 80: Biraz daha yukarı taşındı (kullanıcı isteği)
 
-    // Tek oyuncu: AVPlayer tabanlı embed
+    // EN: Single lightweight embed for each item. TR: Her öğe için tek bir hafif embed.
     @ViewBuilder
     private func playerEmbed() -> some View {
-    // Tamamen temiz arayüzlü hafif embed (forceHideAll)
+        // EN: Force a clean UI (no overlays) for Shorts. TR: Shorts için tamamen temiz UI (overlay yok).
     ShortsLightPlayerView(videoId: video.id, shouldPlay: $shouldPlay, showComments: $showComments)
     }
 
     var body: some View {
         GeometryReader { geometry in
             ZStack(alignment: .topLeading) {
-                // Arka planı şeffaf yap: dıştaki bulanık arkaplan kenarlardan görünsün
+                // EN: Transparent background to let ambient blur show through. TR: Ortam bluru görünür kalsın diye şeffaf arkaplan.
                 Color.clear
 
                 playerEmbed()
                     .frame(width: geometry.size.width, height: geometry.size.height)
                     .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
                     .shadow(color: Color.black.opacity(0.4), radius: 8, x: 0, y: 4)
-                // Yalnızca video alanına tıklayınca play/pause toggle et (arka siyah boşluk artık tetiklemez)
+                // EN: Toggle play/pause on video tap only (not the outer black area). TR: Sadece video alanına tıklayınca oynat/duraklat.
                 .contentShape(Rectangle())
                 .onTapGesture {
                         NotificationCenter.default.post(name: .shortsFocusVideoId, object: nil, userInfo: ["videoId": video.id])
                         shouldPlay.toggle()
                     }
 
-                // Sağ aksiyon butonları
+                // EN: Right action bar (prev/like/comments/share/more/next). TR: Sağ eylem çubuğu (önceki/beğeni/yorum/paylaş/daha/sonraki).
                 VStack {
                     Spacer()
                     HStack {
                         Spacer()
                         VStack(spacing: actionVerticalSpacing) {
-                            // Yukarı
+                            // EN: Previous Shorts. TR: Önceki Shorts.
                             if let idx = youtubeAPI.shortsVideos.firstIndex(where: { $0.id == video.id }), idx > 0 {
                                 Button(action: {
                                     let prev = idx - 1
@@ -79,7 +68,7 @@ struct ShortsVideoView: View {
                                 .foregroundColor(.white)
                             }
 
-                            // Beğeni
+                            // EN: Like and show count (fetched if needed). TR: Beğeni ve sayı (gerekirse çekilir).
                             VStack(spacing: 4) {
                                 Image(systemName: "hand.thumbsup").font(.system(size: actionIconSize))
                                 Text(youtubeAPI.likeCountByVideoId[video.id] ?? video.likeCount)
@@ -88,7 +77,7 @@ struct ShortsVideoView: View {
                             .foregroundColor(.white)
                             .onAppear { youtubeAPI.fetchLikeCountIfNeeded(videoId: video.id) }
 
-                            // Yorum
+                            // EN: Open comments panel. TR: Yorum panelini aç.
                 Button(action: {
                                 withAnimation(.spring(response: 0.45, dampingFraction: 0.85)) { showComments = true }
                                 youtubeAPI.fetchComments(videoId: video.id)
@@ -100,7 +89,7 @@ struct ShortsVideoView: View {
                             }
                             .buttonStyle(.plain)
 
-                            // Paylaş
+                            // EN: Share actions (copy link, open in YouTube). TR: Paylaş (link kopyala, YouTube’da aç).
                 Button(action: { showShareMenu.toggle() }) {
                                 VStack(spacing: 4) {
                     Image(systemName: "square.and.arrow.up").font(.system(size: actionIconSize))
@@ -133,7 +122,7 @@ struct ShortsVideoView: View {
                                 .frame(width: 200)
                             }
 
-                            // Daha
+                            // EN: More actions placeholder. TR: Diğer eylemler için yer tutucu.
                 Button(action: {}) {
                                 VStack(spacing: 4) {
                     Image(systemName: "ellipsis").font(.system(size: actionIconSize))
@@ -142,7 +131,7 @@ struct ShortsVideoView: View {
                             }
                             .buttonStyle(.plain)
 
-                            // Aşağı
+                            // EN: Next Shorts. TR: Sonraki Shorts.
                             if let idx = youtubeAPI.shortsVideos.firstIndex(where: { $0.id == video.id }), idx < youtubeAPI.shortsVideos.count - 1 {
                                 Button(action: {
                                     let next = idx + 1
@@ -160,7 +149,7 @@ struct ShortsVideoView: View {
                     .padding(.bottom, actionBottomLift)
                 }
 
-                // Alt meta
+                // EN: Bottom meta (channel avatar/name and full title). TR: Alt meta (kanal avatar/isim ve tam başlık).
                 VStack {
                     Spacer()
                     VStack(alignment: .leading, spacing: 8) {
@@ -182,7 +171,7 @@ struct ShortsVideoView: View {
                             }
                             Spacer()
                         }
-                        // Açıklama (video hakkında) bölümü talep üzerine kaldırıldı.
+                        // EN: Description removed by request. TR: Açıklama talep üzerine kaldırıldı.
                     }
                     .padding(.horizontal, 12)
                     // Daha yukarı taşımak için bottom padding artırıldı
@@ -195,7 +184,7 @@ struct ShortsVideoView: View {
                 }
             if video.channelThumbnailURL.isEmpty {
                     Task {
-                if let info = await youtubeAPI.quickChannelInfo(channelId: video.channelId), !info.thumbnailURL.isEmpty {
+                        if let info = await youtubeAPI.quickChannelInfo(channelId: video.channelId), !info.thumbnailURL.isEmpty {
                             await MainActor.run { self.resolvedThumb = info.thumbnailURL }
                         }
                     }
@@ -211,7 +200,7 @@ struct ShortsVideoView: View {
     }
 }
 
-// LightYouTubeEmbed tabanlı Shorts player (compact mod ile paylaşılan)
+// EN: LightYouTubeEmbed-based Shorts player (shared with compact mode). TR: LightYouTubeEmbed tabanlı Shorts oynatıcı (compact mod ile paylaşılan).
 struct ShortsLightPlayerView: View {
     @EnvironmentObject var i18n: Localizer
     let videoId: String
@@ -220,17 +209,17 @@ struct ShortsLightPlayerView: View {
     @StateObject private var controller = LightYouTubeController()
     @State private var isReady = false
     @State private var reloadToken = UUID()
-    // Center scrubber UI state
+    // EN: Center scrubber state (seek bar). TR: Merkez sürgü durumu (zaman çubuğu).
     @State private var isScrubbing = false
     @State private var sliderValue: Double = 0
     @State private var lastDuration: Double = 0
     @State private var wasPlayingBeforeScrub = false
-    // Volume UI state (top-left)
+    // EN: Top-left volume overlay state. TR: Sol üst ses kaplaması durumu.
     @State private var showVolume: Bool = false
     @State private var isVolumeScrubbing: Bool = false
     @State private var volumePercent: Double = 80 // 0...100 (restored from persisted value if exists)
     @State private var volumeHideWorkItem: DispatchWorkItem? = nil
-    // Repeat control state (top-right)
+    // EN: Top-right repeat control state. TR: Sağ üst tekrar kontrol durumu.
     private enum RepeatMode: String { case off, once, infinite }
     @State private var repeatMode: RepeatMode = .off // restored from persisted value if exists
     // Gate to avoid firing replay more than once near the tail
@@ -260,8 +249,7 @@ struct ShortsLightPlayerView: View {
             )
             .id(reloadToken)
             .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
-            // Right-clicks are forwarded by PassthroughWKWebView so SwiftUI .contextMenu can appear
-            // Custom context menu for Shorts
+            // EN: Right-click context menu with play/pause, comments, copy link. TR: Sağ tık menüsü: oynat/duraklat, yorumlar, link kopyala.
             .contextMenu {
                 // 1) Play/Pause toggle depending on state
                 Button(action: {
@@ -292,13 +280,13 @@ struct ShortsLightPlayerView: View {
                     Label(i18n.t(.copyLink), systemImage: "doc.on.doc")
                 }
             }
-            // Yükleme sırasında görünen overlay de aynı köşeli maske ile kliplensin
+            // EN: Loading overlay with matching rounded mask. TR: Aynı köşeli maske ile yükleme katmanı.
             if !isReady {
                 Color.black.opacity(0.6)
                     .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
                     .overlay(ProgressView())
             }
-            // Center scrubber overlay
+            // EN: Center scrubber overlay (time/slider). TR: Merkez sürgü katmanı (zaman/kaydırıcı).
             GeometryReader { g in
                 // Only show when duration known (>0)
                 if (lastDuration > 0) || (controller.duration > 0) {
@@ -345,7 +333,7 @@ struct ShortsLightPlayerView: View {
                 }
             }
 
-            // Top-left volume control overlay
+            // EN: Top-left volume control overlay. TR: Sol üst ses kontrol katmanı.
             VStack {
                 HStack(spacing: 8) {
                     Button(action: {
@@ -385,7 +373,7 @@ struct ShortsLightPlayerView: View {
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
 
-            // Top-right repeat control overlay
+            // EN: Top-right repeat control overlay. TR: Sağ üst tekrar kontrol katmanı.
             VStack {
                 HStack(spacing: 8) {
                     Button(action: { cycleRepeatMode() }) {
@@ -435,9 +423,9 @@ struct ShortsLightPlayerView: View {
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topTrailing)
         }
-        // Tüm katmanları güvenli olması için tekrar kliple
+    // EN: Clip all layers for consistent rounded corners. TR: Tüm katmanları köşeleri tutarlı olsun diye kliple.
         .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
-        // Restore persisted settings for Shorts controls when this view appears
+    // EN: Restore persisted Shorts settings on appear. TR: Görünürken Shorts ayarlarını geri yükle.
         .onAppear {
             // Volume (restore even if muted = 0)
             if let obj = UserDefaults.standard.object(forKey: "ShortsVolumePercent") as? NSNumber {
@@ -469,7 +457,7 @@ struct ShortsLightPlayerView: View {
                 controller.setVolume(percent: Int(volumePercent))
             }
         }
-        // Keep local mirrors for duration/slider sync
+        // EN: Keep local mirrors to sync slider with duration/time. TR: Sürgüyle süre/zamanı senkronlamak için yerel yansımalar.
         .onChange(of: controller.duration) { _, d in
             lastDuration = d
         }

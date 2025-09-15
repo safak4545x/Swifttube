@@ -1,33 +1,25 @@
 /*
- File Overview (EN)
- Purpose: Visual tab strip UI for switching between open video tabs.
- Key Responsibilities:
- - Show tab titles, close buttons, and active state
- - Provide scrolling when tabs overflow
- Used By: Shown globally via SheetManagementView.
-
- Dosya Özeti (TR)
- Amacı: Açık video sekmeleri arasında geçiş için görsel sekme şeridi UI.
- Ana Sorumluluklar:
- - Sekme başlıkları, kapatma butonları ve aktif durumu göstermek
- - Sekmeler taşınca kaydırma sağlamak
- Nerede Kullanılır: SheetManagementView üzerinden global olarak gösterilir.
+ Overview / Genel Bakış
+ EN: Visual tab strip to switch between open video tabs; supports scrolling, close buttons, and active styling.
+ TR: Açık video sekmeleri arasında geçiş için görsel şerit; kaydırma, kapatma ve aktif stil desteği.
 */
 
+// EN: SwiftUI view rendering a horizontal tab strip. TR: Yatay sekme şeridi çizen SwiftUI görünümü.
 import SwiftUI
 
+// EN: Tab strip bound to TabCoordinator. TR: TabCoordinator'a bağlı sekme şeridi.
 struct TabStripView: View {
 	@ObservedObject var tabs: TabCoordinator
 	@State private var tabStartIndex: Int = 0
 	private let tabPageStep: Int = 4
 
 	var body: some View {
-		// Hide the whole strip when there are no tabs (other than the pinned Home button)
+		// EN: Hide strip when there are no tabs. TR: Sekme yoksa şeridi gizle.
 		if tabs.tabs.isEmpty {
 			EmptyView()
 		} else {
 		HStack(spacing: 6) {
-			// Pinned Home button at the far left (non-scrollable)
+			// EN: Pinned Home button at far left. TR: Solda sabit Home düğmesi.
 			Button(action: { NotificationCenter.default.post(name: .goHome, object: nil) }) {
 				HStack(spacing: 0) {
 					Image(systemName: "house.fill").font(.system(size: 12, weight: .semibold))
@@ -46,7 +38,7 @@ struct TabStripView: View {
 			.buttonStyle(.plain)
 			.help("Ana sayfaya git")
 
-			// Scrollable tabs area (only when there are tabs)
+			// EN: Scrollable tabs area. TR: Kaydırılabilir sekmeler alanı.
 			if !tabs.tabs.isEmpty {
 				ScrollViewReader { proxy in
 					ZStack {
@@ -62,7 +54,7 @@ struct TabStripView: View {
 							}
 						}
 
-						// SOLA KAYDIR
+						// EN: Page left through tabs. TR: Sekmelerde sola sayfala.
 						.overlay(alignment: .leading) {
 							if !tabs.tabs.isEmpty {
 								let canGoLeft = tabStartIndex > 0
@@ -90,7 +82,7 @@ struct TabStripView: View {
 							}
 						}
 
-						// SAĞA KAYDIR
+						// EN: Page right through tabs. TR: Sekmelerde sağa sayfala.
 						.overlay(alignment: .trailing) {
 							if !tabs.tabs.isEmpty {
 								let lastStart = max(0, tabs.tabs.count - 1 - tabPageStep)
@@ -123,7 +115,7 @@ struct TabStripView: View {
 						if let last = tabs.tabs.last { withAnimation { proxy.scrollTo(last.id, anchor: .trailing) } }
 					}
 					.onChange(of: tabs.tabs.count) { _, _ in
-						// Sekme sayısı değişince başlangıcı güvenli aralıkta tut
+						// EN: Keep start index within bounds when count changes. TR: Sayı değişince başlangıcı aralıkta tut.
 						tabStartIndex = min(tabStartIndex, max(0, tabs.tabs.count - 1))
 					}
 				}
@@ -132,7 +124,7 @@ struct TabStripView: View {
 		.padding(.horizontal, 8)
 		.padding(.vertical, 6)
 		.background(
-			// Native blur similar to title bar
+			// EN: Titlebar-like blur background with top hairline. TR: Başlık çubuğu benzeri blur arka plan ve üst çizgi.
 			VisualEffectView(material: .titlebar, blendingMode: .withinWindow)
 				.overlay(alignment: .top) {
 					Rectangle().fill(Color(NSColor.separatorColor).opacity(0.18)).frame(height: 0.5)
@@ -142,6 +134,7 @@ struct TabStripView: View {
 	}
 }
 
+// EN: A single tab chip with title and close button. TR: Başlık ve kapatma düğmesi olan tek bir sekme çipi.
 private struct TabChip: View {
 	let tab: AppTab
 	let isActive: Bool
@@ -173,7 +166,7 @@ private struct TabChip: View {
 		.onHover { hovering in
 			if hovering { NSCursor.pointingHand.set() } else { NSCursor.arrow.set() }
 		}
-		// Capture only middle-click to close; left-clicks pass through to Button/onTapGesture
+		// EN: Capture only middle-click to close; left-clicks pass through. TR: Sadece orta tıkla kapat; sol tıklar geçer.
 		.overlay(MiddleClickCatcher(onMiddleClick: onClose).allowsHitTesting(true))
 	}
 	private func truncated(_ s: String) -> String {
@@ -183,7 +176,7 @@ private struct TabChip: View {
 	}
 }
 
-// NSViewRepresentable to catch ONLY middle mouse button without blocking normal clicks
+// EN: Catch ONLY middle mouse without blocking other clicks. TR: Diğer tıklamaları engellemeden SADECE orta tıklamayı yakala.
 private struct MiddleClickCatcher: NSViewRepresentable {
 	let onMiddleClick: () -> Void
 	func makeNSView(context: Context) -> NSView { Catcher(onMiddleClick: onMiddleClick) }
