@@ -19,8 +19,6 @@
 */
 
 import SwiftUI
-
-// Kanal detay paneli - Video paneli stiline uyarlanmış
 struct ChannelView: View {
     @EnvironmentObject var i18n: Localizer
     let channel: YouTubeChannel
@@ -31,19 +29,14 @@ struct ChannelView: View {
     @State private var isSubscribed = false
     @State private var visibleVideoCount: Int = 12
     @State private var isDescriptionExpanded = false
-    @State private var dynamicChannelInfo: YouTubeChannel? = nil // Güncel istatistikler için
-    // Banner altına blur uzantısı: tüm kanallar için hatırlansın
-    @AppStorage("global:channelBannerBlurEnabled") private var showBannerBottomBlur = false
+    @State private var dynamicChannelInfo: YouTubeChannel? = nil 
 
-    // Not: Kanal panelinde yalnızca popüler videolar gösteriliyor; "tarih" ve "en yeni" sıralama seçenekleri kaldırıldı.
-    
-    // MARK: - Body
+    @AppStorage("global:channelBannerBlurEnabled") private var showBannerBottomBlur = false
     var body: some View {
         GeometryReader { geo in
             let padding: CGFloat = 16
-            let contentWidth = max(800, geo.size.width - padding*2) // video paneline benzer min genişlik
+            let contentWidth = max(800, geo.size.width - padding*2)
             ScrollView(showsIndicators: false) {
-                // Kanal banner'ı tam genişlikte (yan padding olmadan), ardından içerik bölümü
                 VStack(spacing: 0) {
                     bannerSection(width: geo.size.width)
                     VStack(alignment: .leading, spacing: 24) {
@@ -57,7 +50,6 @@ struct ChannelView: View {
                 }
             }
             .onAppear(perform: loadData)
-            // Kanal değiştiyse state sıfırlayıp yeni verileri çek
             .onChange(of: channel.id) { _, _ in
                 popularVideos = []
                 dynamicChannelInfo = nil
@@ -66,24 +58,18 @@ struct ChannelView: View {
                 loadData()
             }
             .onReceive(youtubeAPI.$currentChannelPopularVideos) { vids in
-                // Sadece bu kanalın videoları ise ata (farklı kanal açınca eski veri gözükmesin)
                 self.popularVideos = vids.filter { $0.channelId == channel.id }
                 self.isLoading = false
-                // Yeni veri geldiğinde başlangıç görünür sayıyı sıfırla
                 self.visibleVideoCount = 12
             }
             .onReceive(youtubeAPI.$channelInfo) { info in
-                // Paylaşılan channelInfo güncellenince sadece bu kanala aitse uygula
                 if let info, info.id == channel.id { dynamicChannelInfo = info }
             }
         }
-    // Match homepage background for consistency
     .background(Color(NSColor.controlBackgroundColor))
     }
     
-    // MARK: - Sections
     private func bannerSection(width: CGFloat) -> some View {
-        // YouTube masaüstü görünür alanı yaklaşık 2560x423 -> oran ~0.165
         let targetHeight = max(180, min(width * 0.165, 320))
         let bannerURL = (dynamicChannelInfo?.bannerURL ?? channel.bannerURL) ?? "https://source.unsplash.com/random/1920x1080/?music,stage"
         return AsyncImage(url: URL(string: bannerURL)) { image in
@@ -99,17 +85,14 @@ struct ChannelView: View {
                 .shimmering()
         }
         .overlay(
-            // Altta hafif karartma; başlık banner ile kaynaşmasın
             LinearGradient(colors: [Color.black.opacity(0.35), Color.black.opacity(0.0)], startPoint: .bottom, endPoint: .top)
         )
-        // Blur uzantısını overlay olarak çiz: layout'u değiştirmez
         .overlay(alignment: .bottom) {
             if showBannerBottomBlur {
                 bannerBottomBlur(width: width, overlayMode: true)
                     .transition(.opacity)
             }
         }
-        // Sağ-altta: ambient blur ampul butonu (video paneli stili)
         .overlay(alignment: .bottomTrailing) {
             Button {
                 withAnimation(.easeInOut(duration: 0.18)) { showBannerBottomBlur.toggle() }
@@ -130,13 +113,10 @@ struct ChannelView: View {
         }
         .frame(width: width, height: targetHeight)
         .contentShape(Rectangle())
-        // Köşe yuvarlama kaldırıldı; panel ile boşluk oluşuyordu
     }
 
-    // Bannerın altına yumuşak blur uzatması (sadece aşağıya doğru)
     private func bannerBottomBlur(width: CGFloat, overlayMode: Bool = false) -> some View {
         let bannerURL = (dynamicChannelInfo?.bannerURL ?? channel.bannerURL) ?? "https://source.unsplash.com/random/1920x1080/?music,stage"
-        // Yükseklik: ekran genişliğine göre ölçekli; yumuşak bir geçiş için degrade maske
         let blurHeight = max(80, min(width * 0.12, 180))
         return AsyncImage(url: URL(string: bannerURL)) { image in
             image
@@ -161,7 +141,6 @@ struct ChannelView: View {
             Color.clear.frame(width: width, height: blurHeight)
         }
         .frame(width: width, height: blurHeight)
-        // Overlay modunda, içeriği aşağı taşımadan bannerın altına sarkıt
         .offset(y: overlayMode ? blurHeight : 0)
         .contentShape(Rectangle())
         .allowsHitTesting(false)
@@ -171,7 +150,6 @@ struct ChannelView: View {
         let info = dynamicChannelInfo ?? channel
         return VStack(alignment: .leading, spacing: 20) {
             HStack(alignment: .top, spacing: 20) {
-                // Profil
                 AsyncImage(url: URL(string: info.thumbnailURL)) { image in
                     image.resizable().aspectRatio(contentMode: .fill)
                 } placeholder: {
@@ -302,7 +280,6 @@ struct ChannelView: View {
             HStack(alignment: .center, spacing: 12) {
                 Text(i18n.t(.popularVideosTitle))
                     .font(.title2).fontWeight(.bold)
-                // Sıralama menüsü kaldırıldı
             }
             let columns = adaptiveColumns(for: width)
             LazyVGrid(columns: columns, spacing: 20) {
@@ -313,7 +290,7 @@ struct ChannelView: View {
                         onSelectVideo(video)
                     }
                 }
-                if popularVideos.isEmpty { // skeletons
+                if popularVideos.isEmpty { 
                     ForEach(0..<12, id: \.self) { _ in VideoCardSkeletonView() }
                 }
             }
@@ -338,13 +315,10 @@ struct ChannelView: View {
     }
     
     private func adaptiveColumns(for width: CGFloat) -> [GridItem] {
-        // Benzer mantık: her kart ~300-340 genişlik
         let desired: CGFloat = 320
         let count = max(1, Int((width - 32) / desired))
         return Array(repeating: GridItem(.flexible(), spacing: 20), count: count)
     }
-    
-    // MARK: - Load
     private func loadData() {
         youtubeAPI.fetchChannelPopularVideos(channelId: channel.id)
         youtubeAPI.fetchChannelInfo(channelId: channel.id)
