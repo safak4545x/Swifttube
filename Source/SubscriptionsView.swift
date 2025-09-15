@@ -1,32 +1,25 @@
 /*
- File Overview (EN)
- Purpose: Subscriptions page showing latest videos and shorts from the user's subscribed channels, plus a bottom inline bar listing channels for quick navigation.
- Key Responsibilities:
- - Display subscription feed or a selected channel's videos
- - Provide bottom scrollable channel bar with hover-based scroll controls
- - Integrate with SheetManagementView to open video and channel panels
- - Trigger initial fetches for subscription videos and shorts
- Used By: MainContentView when the Subscriptions page is active.
-
- Dosya Özeti (TR)
- Amacı: Kullanıcının abone olduğu kanallardan gelen en yeni videoları ve Shorts'ları gösteren sayfa; hızlı gezinme için altta kanal barı sunar.
- Ana Sorumluluklar:
- - Abonelik akışını veya seçili kanalın videolarını listelemek
- - Üzerine gelince görünen kontrol butonlarıyla kaydırılabilir alt kanal barı sağlamak
- - Video ve kanal panellerini açmak için SheetManagementView ile entegre çalışmak
- - Abonelik videoları ve Shorts için ilk veri çekimlerini tetiklemek
- Nerede Kullanılır: MainContentView'de Abonelikler sekmesi aktifken.
+ Overview / Genel Bakış
+ EN: Subscriptions page: latest videos and shorts from subscribed channels, with a bottom channel bar for quick navigation.
+ TR: Abonelik sayfası: abone olunan kanallardan en yeni videolar ve Shorts; hızlı gezinme için altta kanal çubuğu.
 */
 
+// EN: Import SwiftUI for building views. TR: Görünümleri oluşturmak için SwiftUI kütüphanesi.
 import SwiftUI
 
 struct SubscriptionsView: View {
+    // EN: Localization provider for UI strings. TR: UI metinleri için yerelleştirme sağlayıcısı.
     @EnvironmentObject var i18n: Localizer
+    // EN: Observable service that holds videos, subscriptions, shorts. TR: Videoları, abonelikleri ve Shorts'u tutan gözlemlenebilir servis.
     @ObservedObject var youtubeAPI: YouTubeAPIService
+    // EN: Currently selected channel and whether its sheet is open. TR: Seçili kanal ve panel açık mı.
     @State private var selectedChannel: YouTubeChannel? = nil
     @State private var showChannelSheet: Bool = false
+    // EN: Selected video opens the video sheet. TR: Seçilen video paneli açar.
     @State private var selectedVideo: YouTubeVideo? = nil
+    // EN: Toggle between all subscriptions feed vs a single channel. TR: Tüm abonelik akışı ile tek kanal görünümü arasında geçiş.
     @State private var showingChannelVideos = false
+    // EN: Bottom channel bar scroll state and hover-driven controls. TR: Alt kanal çubuğu kaydırma durumu ve hover tabanlı kontroller.
     @State private var scrollPosition: Int = 0
     @State private var showScrollButtons: Bool = false
     @State private var scrollViewWidth: CGFloat = 0
@@ -35,7 +28,7 @@ struct SubscriptionsView: View {
     @State private var isHoveringLeftArea: Bool = false
     @State private var isHoveringRightArea: Bool = false
     
-    // SheetManagementView için gerekli state'ler
+    // EN: State flags used by SheetManagementView (video/channel/playlist panels). TR: SheetManagementView'in kullandığı durumlar (video/kanal/playlist panelleri).
     @State private var showChannelSearch: Bool = false
     @State private var showChannelView: Bool = false
     @State private var showPlaylistSearch: Bool = false
@@ -45,6 +38,7 @@ struct SubscriptionsView: View {
     @State private var userChannelURL: String = ""
     
     var body: some View {
+        // EN: Wrap page content with shared sheet manager (video/channel/playlist). TR: Sayfa içeriğini ortak panel yöneticisi ile sarar (video/kanal/playlist).
         SheetManagementView(
             content: mainContent,
             selectedVideo: $selectedVideo,
@@ -82,6 +76,7 @@ struct SubscriptionsView: View {
                             .padding(.top, 12)
                             .frame(maxWidth: .infinity, alignment: .leading)
                             
+                            // EN: Adaptive grid fits 320–420pt cards. TR: 320–420pt arası kartlara uyumlanan ızgara.
                             LazyVGrid(
                                 columns: [
                                     GridItem(
@@ -104,7 +99,7 @@ struct SubscriptionsView: View {
                                 .padding(.top, 20)
                         }
                     } else {
-                        // Tüm aboneliklerin en yeni videoları
+                        // EN: Latest videos from all subscriptions. TR: Tüm aboneliklerden en yeni videolar.
                         if !youtubeAPI.subscriptionVideos.isEmpty {
                             Text(i18n.t(.latestVideosTitle))
                                 .font(.headline)
@@ -112,6 +107,7 @@ struct SubscriptionsView: View {
                                 .padding(.top, 12)
                                 .frame(maxWidth: .infinity, alignment: .leading)
                             
+                            // EN: Same adaptive grid for feed. TR: Akış için aynı uyarlanabilir ızgara.
                             LazyVGrid(
                                 columns: [
                                     GridItem(
@@ -150,7 +146,7 @@ struct SubscriptionsView: View {
                         }
                     }
                     
-                    // Shorts bölümü (en altta)
+                    // EN: Shorts rail at the bottom, filtered to subscribed channels. TR: Altta Shorts şeridi; sadece abone olunan kanallar.
                     if !youtubeAPI.shortsVideos.isEmpty {
                         let subscriptionShorts = youtubeAPI.shortsVideos.filter { video in
                             // Sadece abone olunan kanalların shorts'ları
@@ -184,7 +180,7 @@ struct SubscriptionsView: View {
                 }
             }
 
-            // Alt bar artık safeAreaInset ile ekleniyor (arka panel çakışmalarını önlemek için)
+            // EN: Place bottom channel bar inside safe area to avoid overlay collisions. TR: Alt kanal çubuğunu safe area içine alarak panel çakışmasını önler.
         }
         // Aboneler barını içeriğin üzerine, alt güvenli alana yerleştir
         .safeAreaInset(edge: .bottom, spacing: 0) {
@@ -230,6 +226,7 @@ struct SubscriptionsView: View {
                                     }
                             })
                         }
+                        // EN: Track visible width of scroller to decide button visibility. TR: Buton görünürlüğü için scroller genişliğini izler.
                         .background(GeometryReader { geometry in
                             Color.clear
                                 .onAppear { updateScrollViewWidth(geometry.size.width) }
@@ -238,7 +235,7 @@ struct SubscriptionsView: View {
                                 }
                         })
                         .onChange(of: scrollPosition) { _, newPosition in
-                            withAnimation(.easeInOut(duration: 0.3)) { proxy.scrollTo(newPosition, anchor: .center) }
+                            withAnimation(.easeInOut(duration: 0.3)) { proxy.scrollTo(newPosition, anchor: .center) } // EN: Smooth snap to index. TR: İndekse yumuşak kaydırma.
                             DispatchQueue.main.asyncAfter(deadline: .now() + 0.35) { updateScrollButtonVisibility() }
                         }
                         .overlay(
