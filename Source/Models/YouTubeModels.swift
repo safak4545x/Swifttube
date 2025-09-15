@@ -1,42 +1,43 @@
 /*
- File Overview (EN)
- Purpose: Core data models for YouTube entities: Video, Channel, Playlist, and Comment with Codable support.
- Key Responsibilities:
- - Define strongly-typed models with backward-compatible decoding
- - Provide convenience formatters (e.g., subscriber/like counts) and placeholders
- - Support optional fields like publishedAtISO and durationSeconds
- Used By: Almost every view/service rendering or fetching YouTube data.
-
- Dosya Özeti (TR)
- Amacı: YouTube varlıkları için temel veri modelleri: Video, Kanal, Oynatma Listesi ve Yorum (Codable destekli).
- Ana Sorumluluklar:
- - Eski verilerle uyumlu decode yapan güçlü tipler tanımlamak
- - Kolay biçimlendiriciler (abone/beğeni sayıları) ve placeholder üreticiler sunmak
- - publishedAtISO ve durationSeconds gibi opsiyonel alanları desteklemek
- Nerede Kullanılır: YouTube verisini getiren veya gösteren neredeyse tüm view/servisler.
+ Overview / Genel Bakış
+ EN: Core models for YouTube entities (Video, Channel, Playlist, Comment) with Codable and graceful backward-compat decoding.
+ TR: YouTube varlıkları için temel modeller (Video, Kanal, Liste, Yorum); Codable ve geriye dönük uyumlu decode içerir.
 */
 
 
+// EN: Foundation for Codable, Date parsing, etc. TR: Codable, Tarih ayrıştırma vb. için Foundation.
 import Foundation
 
-// YouTube Video Modeli
+// EN: YouTube video model used across views/services. TR: Görünümler/servislerde kullanılan YouTube video modeli.
 struct YouTubeVideo: Identifiable, Codable {
+    // EN: Unique id (YT video id). TR: Benzersiz kimlik (YT video id).
     let id: String
+    // EN: Video title. TR: Video başlığı.
     let title: String
+    // EN: Channel display name. TR: Kanal görünen adı.
     let channelTitle: String
+    // EN: Channel id (for navigation). TR: Kanal id'si (gezinme için).
     let channelId: String
+    // EN: Raw view count text (as scraped/API). TR: Ham izlenme metni (toplanan/APİ).
     let viewCount: String
+    // EN: Human readable publish label. TR: İnsan okuyabilir yayınlanma etiketi.
     let publishedAt: String
-    // Orijinal ISO tarih (sıralama için tutulur)
+    // EN: Original ISO date for sorting. TR: Sıralama için tutulan orijinal ISO tarih.
     let publishedAtISO: String?
+    // EN: Thumbnail URL (may be normalized later). TR: Küçük resim URL'si (sonradan normalize edilebilir).
     let thumbnailURL: String
+    // EN: Video description text. TR: Video açıklaması.
     let description: String
-    let channelThumbnailURL: String // Kanal profil fotoğrafı için eklendi
-    let likeCount: String // Video beğeni sayısı
-    let durationText: String  // "12:34" gibi
-    let durationSeconds: Int? // ham saniye (opsiyonel)
+    // EN: Channel avatar URL. TR: Kanal profil foto URL'si.
+    let channelThumbnailURL: String
+    // EN: Like count string. TR: Beğeni sayısı metni.
+    let likeCount: String
+    // EN: Duration in text, e.g. "12:34". TR: Metin süre, örn. "12:34".
+    let durationText: String
+    // EN: Raw duration in seconds (optional). TR: Ham süre saniye (opsiyonel).
+    let durationSeconds: Int?
 
-    // Backward compatibility için init
+    // EN: Init with defaults for backward compatibility. TR: Geriye uyumluluk için varsayılanlarla init.
     init(id: String, title: String, channelTitle: String, channelId: String, viewCount: String, publishedAt: String, publishedAtISO: String? = nil, thumbnailURL: String, description: String, channelThumbnailURL: String, likeCount: String = "0", durationText: String = "", durationSeconds: Int? = nil) {
         self.id = id
         self.title = title
@@ -53,7 +54,7 @@ struct YouTubeVideo: Identifiable, Codable {
         self.durationSeconds = durationSeconds
     }
 
-    // Eski kayıtlarda likeCount veya publishedAtISO olmayabilir – güvenli decode
+    // EN: Older records may miss likeCount/publishedAtISO – decode safely. TR: Eski kayıtlarda likeCount/publishedAtISO olmayabilir – güvenli decode.
     enum CodingKeys: String, CodingKey {
         case id, title, channelTitle, channelId, viewCount, publishedAt, publishedAtISO, thumbnailURL, description, channelThumbnailURL, likeCount, durationText, durationSeconds
     }
@@ -112,6 +113,7 @@ extension YouTubeVideo {
             durationSeconds: nil
         )
     }
+    // EN: Parse ISO string into Date (fast ISO8601 then fallback). TR: ISO dizgesini Date'e çevir (hızlı ISO8601 sonra yedek).
     var publishedAtISODate: Date? {
         guard let publishedAtISO else { return nil }
         // ISO8601DateFormatter hızlı; fallback normal DateFormatter
@@ -124,16 +126,24 @@ extension YouTubeVideo {
     }
 }
 
+// EN: YouTube channel summary model. TR: YouTube kanal özet modeli.
 struct YouTubeChannel: Identifiable, Codable {
+    // EN: Channel id. TR: Kanal id'si.
     let id: String
+    // EN: Channel title. TR: Kanal başlığı.
     let title: String
+    // EN: Channel description. TR: Kanal açıklaması.
     let description: String
+    // EN: Channel avatar URL. TR: Kanal avatar URL'si.
     let thumbnailURL: String
+    // EN: Optional banner image. TR: Opsiyonel banner görseli.
     let bannerURL: String?
+    // EN: Subscriber count (int). TR: Abone sayısı (int).
     let subscriberCount: Int
+    // EN: Total videos in channel. TR: Kanaldaki toplam video.
     let videoCount: Int
     
-    // Formatted subscriber count
+    // EN: Localized formatted subscriber label. TR: Yerelleştirilmiş abone etiketi.
     var formattedSubscriberCount: String {
     let lang = UserDefaults.standard.string(forKey: "appLanguage") ?? AppLanguage.en.rawValue
     let suffix = (lang == AppLanguage.tr.rawValue) ? "abone" : "subscribers"
@@ -156,7 +166,7 @@ struct YouTubeChannel: Identifiable, Codable {
         }
     }
     
-    // Backward compatibility için init
+    // EN: Init with defaults for backward compatibility. TR: Geriye uyum için varsayılanlara sahip init.
     init(id: String, title: String, description: String, thumbnailURL: String, bannerURL: String? = nil, subscriberCount: Int = 0, videoCount: Int = 0) {
         self.id = id
         self.title = title
@@ -168,17 +178,23 @@ struct YouTubeChannel: Identifiable, Codable {
     }
 }
 
+// EN: Playlist model (supports local/imported lists). TR: Oynatma listesi modeli (yerel/ithal listeleri destekler).
 struct YouTubePlaylist: Identifiable, Codable {
+    // EN: Playlist id. TR: Liste id'si.
     let id: String
+    // EN: Playlist title. TR: Liste başlığı.
     let title: String
+    // EN: Optional description. TR: Opsiyonel açıklama.
     let description: String
+    // EN: Thumbnail URL or custom cover. TR: Küçük resim URL'si veya özel kapak.
     let thumbnailURL: String
+    // EN: Number of videos. TR: Video sayısı.
     let videoCount: Int
-    // Yerel içe aktarılan listeler için video ID'leri (opsiyonel; resmi YouTube listelerinde boş kalır)
+    // EN: Video ids for locally imported lists (optional). TR: Yerel içe aktarılan listeler için video id'leri (ops.).
     let videoIds: [String]?
-    // Özel kapak görseli adı (örn. "playlist", "playlist2"), Examples klasöründen rastgele atanır
+    // EN: Optional sample cover from Examples. TR: Examples klasöründen opsiyonel kapak adı.
     let coverName: String?
-    // Kullanıcının dosyadan yüklediği özel kapak (mutlak dosya yolu). coverName ile birlikte kullanılmaz.
+    // EN: User-chosen custom cover path (mutually exclusive with coverName). TR: Kullanıcı seçimi özel kapak yolu (coverName ile birlikte kullanılmaz).
     let customCoverPath: String?
 
     init(id: String, title: String, description: String = "", thumbnailURL: String = "", videoCount: Int = 0, videoIds: [String]? = nil, coverName: String? = nil, customCoverPath: String? = nil) {
@@ -192,23 +208,34 @@ struct YouTubePlaylist: Identifiable, Codable {
         self.customCoverPath = customCoverPath
     }
 
+    // EN: Explicit coding keys to keep stable serialization. TR: Kararlı serileştirme için açık coding keys.
     enum CodingKeys: String, CodingKey { case id, title, description, thumbnailURL, videoCount, videoIds, coverName, customCoverPath }
 }
 
+// EN: Observable, codable comment thread node. TR: Gözlemlenebilir, kodlanabilir yorum düğümü.
 class YouTubeComment: Identifiable, ObservableObject {
+    // EN: Comment id. TR: Yorum id'si.
     let id: String
+    // EN: Author display name. TR: Yazar görünen adı.
     let author: String
+    // EN: Comment text. TR: Yorum metni.
     let text: String
+    // EN: Author avatar URL. TR: Yazar avatar URL'si.
     let authorImage: String
+    // EN: Like count. TR: Beğeni sayısı.
     let likeCount: Int
+    // EN: Human readable publish time. TR: İnsan okuyabilir yayın zamanı.
     let publishedAt: String
+    // EN: Number of replies (observable). TR: Yanıt sayısı (gözlemlenir).
     @Published var replyCount: Int
-    let isPinned: Bool // Sabitlenmiş yorum için
+    // EN: Pinned flag. TR: Sabitlenmiş yorum bayrağı.
+    let isPinned: Bool
+    // EN: Replies (observable). TR: Yanıtlar (gözlemlenir).
     @Published var replies: [YouTubeComment]
-    // Replies continuation token (local API)
+    // EN: Continuation token to fetch more replies. TR: Daha fazla yanıtı çekmek için devam jetonu.
     var repliesContinuationToken: String?
     
-    // Formatted like count
+    // EN: Localized short like count label. TR: Yerelleştirilmiş kısa beğeni etiketi.
     var formattedLikeCount: String {
         if likeCount >= 1_000_000 {
             let millions = Double(likeCount) / 1_000_000
@@ -229,7 +256,7 @@ class YouTubeComment: Identifiable, ObservableObject {
         }
     }
     
-    // Backward compatibility için init
+    // EN: Init with defaults for backward compatibility. TR: Geriye uyumluluk için varsayılanlarla init.
     init(id: String, author: String, text: String, authorImage: String, likeCount: Int = 0, publishedAt: String = "", replyCount: Int = 0, isPinned: Bool = false, replies: [YouTubeComment] = []) {
         self.id = id
         self.author = author
@@ -243,7 +270,7 @@ class YouTubeComment: Identifiable, ObservableObject {
         self.repliesContinuationToken = nil
     }
 
-    // Codable support: Coding keys and Decodable initializer must live in the class
+    // EN: Codable: coding keys and Decodable convenience init. TR: Codable: coding keys ve Decodable convenience init.
     enum CodingKeys: String, CodingKey {
         case id
         case author
@@ -273,7 +300,7 @@ class YouTubeComment: Identifiable, ObservableObject {
     }
 }
 
-// Make comments codable so we can cache them to disk
+// EN: Make comments encodable for disk caching. TR: Disk önbelleği için yorumları encodable yap.
 extension YouTubeComment: Codable {
     func encode(to encoder: Encoder) throws {
         var c = encoder.container(keyedBy: CodingKeys.self)

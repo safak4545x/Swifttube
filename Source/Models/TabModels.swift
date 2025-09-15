@@ -1,36 +1,32 @@
 /*
- File Overview (EN)
- Purpose: Types that represent application tabs and their payload (video/shorts) with optional playlist context.
- Key Responsibilities:
- - Define TabKind (video/shorts) and AppTab identity (id, title, kind)
- - Carry optional PlaylistContext to enable playlist-aware UI on video pages
- Used By: TabCoordinator, TabHostView, VideoDetailView.
-
- Dosya Özeti (TR)
- Amacı: Uygulama sekmelerini ve yüklerini (video/shorts) opsiyonel playlist bağlamıyla birlikte tanımlayan tipler.
- Ana Sorumluluklar:
- - TabKind (video/shorts) ve AppTab kimliğini (id, başlık, tür) tanımlamak
- - Video sayfalarında playlist odaklı UI'ı etkinleştirmek için PlaylistContext taşımak
- Nerede Kullanılır: TabCoordinator, TabHostView, VideoDetailView.
+ Overview / Genel Bakış
+ EN: Types for app tabs and payload (video/shorts) with optional playlist context.
+ TR: Uygulama sekmeleri ve yükleri (video/shorts) için tipler; isteğe bağlı playlist bağlamıyla.
 */
 
+// EN: Foundation for UUID, Codable. TR: UUID ve Codable için Foundation.
 import Foundation
 
+// EN: Tab content kind: video or shorts, carrying the target id. TR: Sekme içeriği türü: video veya shorts, hedef id ile.
 enum TabKind: Equatable, Codable {
 	case video(id: String)
 	case shorts(id: String)
 }
 
-// Optional playlist context carried by a tab when opened from the playlist Play button
+// EN: Optional playlist context when opened via playlist Play button. TR: Playlist Play ile açıldığında isteğe bağlı playlist bağlamı.
 struct PlaylistContext: Equatable, Codable {
+	// EN: Owning playlist id. TR: Bağlı playlist kimliği.
 	let playlistId: String
 }
 
 struct AppTab: Identifiable, Equatable, Codable {
+	// EN: Unique tab id. TR: Benzersiz sekme kimliği.
 	let id: UUID
+	// EN: Title shown on the tab strip. TR: Sekme şeridinde görünen başlık.
 	var title: String
+	// EN: Tab kind and target id. TR: Sekme türü ve hedef id.
 	var kind: TabKind
-	// If not nil, this tab is in "playlist mode" and VideoDetailView should render the playlist panel on the right
+	// EN: If set, the tab is in playlist mode and should render the playlist panel. TR: Ayarlıysa sekme playlist modundadır ve sağda panel gösterilmelidir.
 	var playlist: PlaylistContext? = nil
 
 	init(id: UUID = UUID(), title: String, kind: TabKind, playlist: PlaylistContext? = nil) {

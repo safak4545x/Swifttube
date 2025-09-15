@@ -1,24 +1,14 @@
 /*
- File Overview (EN)
- Purpose: Central place to compose search queries for different scenarios (home seeds, custom categories).
- Key Responsibilities:
- - Build diversified query lists given language/region and seeds
- - Keep query logic consistent across features
- Used By: YouTubeAPIService search flows.
-
- Dosya Özeti (TR)
- Amacı: Farklı senaryolar için arama sorgularını (ana tohumlar, özel kategoriler) derleyen merkezi yer.
- Ana Sorumluluklar:
- - Dil/bölge ve tohumlara göre çeşitlendirilmiş sorgu listeleri üretmek
- - Sorgu mantığını özellikler arasında tutarlı kılmak
- Nerede Kullanılır: YouTubeAPIService arama akışları.
+ Overview / Genel Bakış
+ EN: Centralized builders for query strings (Home, Shorts, Custom Category) to keep behavior consistent.
+ TR: Davranışı tutarlı tutmak için sorgu dizgileri (Ana Sayfa, Shorts, Özel Kategori) için merkezi üreticiler.
 */
 
 import Foundation
 
 /// Sorgu üretimi için tek nokta.
 enum QueryBuilder {
-    /// hl+gl’den yerel dilde bölge adını üretir (ör. tr+TR -> "Türkiye"). gl boşsa nil.
+    /// EN: Make localized region display name from hl+gl (e.g., tr+TR -> "Türkiye"); nil if gl empty. TR: hl+gl'den yerel bölge adı üret; gl boşsa nil.
     static func regionDisplayName(hl: String, gl: String?) -> String? {
         guard let gl = gl, !gl.isEmpty else { return nil }
         let localeId = hl.isEmpty ? "en_US" : "\(hl)_\(gl)"
@@ -26,12 +16,11 @@ enum QueryBuilder {
         return locale.localizedString(forRegionCode: gl) ?? gl
     }
 
-    /// Shorts için tohum sorgular (dil + bölge + isteğe bağlı özel kategori ile).
-    /// Davranış, mevcut `localizedShortsQueries()` ile birebir örtüşecek şekilde tasarlanmıştır.
+    /// EN: Build Shorts seed queries (language + region + optional custom category) mirroring existing behavior. TR: Mevcut davranışla aynı olacak şekilde Shorts tohum sorguları (dil + bölge + opsiyonel özel kategori) üret.
     static func buildShortsSeedQueries(hl: String, gl: String?, selectedCustom: CustomCategory?) -> [String] {
         let regionName = regionDisplayName(hl: hl, gl: gl)
         let markers = LanguageResources.shortsMarkers(for: hl)
-        // Hafif trend tohumları (dil bazlı)
+        // EN: Lightweight trending seeds by language. TR: Dile göre hafif trend tohumları.
         let trendingTerms: [String: [String]] = [
             "en": ["trending", "viral", "popular"],
             "tr": ["trend", "viral", "popüler"],
@@ -57,7 +46,7 @@ enum QueryBuilder {
 
         var queries: [String] = []
 
-        // Özel kategori seçiliyse: anahtar kelimeler + markers (+ bölge adı) ile güçlü bias
+        // EN: If a custom category is selected, bias queries with keywords + markers (+ region). TR: Özel kategori seçiliyse anahtar kelimeler + işaretleyiciler (+ bölge) ile sorgulara ağırlık ver.
         if let custom = selectedCustom {
             var keyParts: [String] = []
             let p = custom.primaryKeyword.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -76,11 +65,11 @@ enum QueryBuilder {
             }
         }
 
-        // Saf marker’lar (+ bölge)
+        // EN: Pure markers (+ region). TR: Salt işaretleyiciler (+ bölge).
         if let r = regionName { queries += markers.map { "\($0) \(r)" } }
         queries += markers
 
-        // Özel kategori yoksa: trend + marker (+ bölge) kombinasyonları
+        // EN: If no custom category: trend + marker (+ region) combinations. TR: Özel kategori yoksa: trend + işaretleyici (+ bölge) kombinasyonları.
         if selectedCustom == nil {
             for t in trendingSeeds.prefix(3) {
                 for m in markers.prefix(3) {
@@ -90,43 +79,42 @@ enum QueryBuilder {
             }
         }
 
-        // Dedup ve limit
+        // EN: Dedupe (case-insensitive) and limit length. TR: Küçük/büyük harf duyarsız tekilleştir ve sınırla.
         var seen = Set<String>()
         let dedup = queries.filter { seen.insert($0.lowercased()).inserted }
         return Array(dedup.prefix(20))
     }
 
-    /// Home (recommendations) için tohum sorgular: son izleme geçmişinden çıkan kanal ve anahtar kelimelerden,
-    /// isteğe bağlı bölge adı ile zenginleştirilmiş ve davranış birebir korunmuş biçimde üretir.
+    /// EN: Build Home seed queries from frequent channels/words and optional region name. TR: Ana sayfa tohumlarını sık kanal/kelimelerden ve isteğe bağlı bölge adından üret.
     /// - Parameters:
-    ///   - hl: Dil kodu (ör. "tr", "en")
-    ///   - gl: Bölge kodu (ör. "TR", "US") veya nil
-    ///   - topChannels: İzleme geçmişinden türetilen en sık kanallar
-    ///   - topWords: İzleme geçmişinden türetilen en sık anahtar kelimeler
-    /// - Returns: Çeşitli tohum sorgular (dedupe uygulanmış)
+    ///   - hl: UI language code (e.g., "tr", "en"). TR: UI dil kodu.
+    ///   - gl: Region code (e.g., "TR", "US") or nil. TR: Bölge kodu veya nil.
+    ///   - topChannels: Frequent channels from watch history. TR: İzleme geçmişinden sık kanallar.
+    ///   - topWords: Frequent keywords from watch history. TR: İzleme geçmişinden sık anahtar kelimeler.
+    /// - Returns: De-duplicated seed queries. TR: Tekilleştirilmiş tohum sorguları.
     static func buildHomeSeedQueries(hl: String, gl: String?, topChannels: [String], topWords: [String]) -> [String] {
         var queries: [String] = []
-        // Kanal bazlı: "<kanal> new videos"
+        // EN: Channel-based seeds. TR: Kanal tabanlı tohumlar.
         for ch in topChannels { queries.append("\(ch) new videos") }
-        // Kelime bazlı: kelimenin kendisi
+        // EN: Word-based seeds. TR: Kelime tabanlı tohumlar.
         for w in topWords { queries.append(w) }
-        // Bölge adı ile kombine (ilk 3 kelime)
+        // EN: Combine region display name with first 3 words. TR: İlk 3 kelimeyle bölge adını birleştir.
         if let regionName = regionDisplayName(hl: hl, gl: gl) {
             queries += topWords.prefix(3).map { "\($0) \(regionName)" }
         }
-        // Tamamen boş ise varsayılanlar
+        // EN: Fallback seeds if empty. TR: Boşsa varsayılan tohumlar.
         if queries.isEmpty { queries = ["popular videos", "recommended videos"] }
-        // Dedupe (sıra korunarak)
+        // EN: Dedupe preserving order. TR: Sıra korunarak tekilleştir.
         var seen = Set<String>()
         let dedup = queries.filter { seen.insert($0.lowercased()).inserted }
         return dedup
     }
 
-    /// Özel kategori için aday arama sorguları üretir (mevcut davranışla aynı):
-    /// - base query (primary + optional extras)
-    /// - primary + each extra
-    /// - region-name variant (primary + region display name)
-    /// - generic boosters ("primary video")
+    /// EN: Build candidate queries for a custom category (same behavior as existing). TR: Özel kategori için aday sorguları üret (mevcut davranış ile aynı).
+    /// - base query (primary + optional extras). TR: temel sorgu (birincil + opsiyoneller)
+    /// - primary + each extra. TR: birincil + her bir ek
+    /// - region-name variant. TR: bölge adı varyantı
+    /// - generic boosters ("primary video"). TR: genel güçlendiriciler ("primary video")
     static func buildCustomCategoryQueries(hl: String, gl: String?, custom: CustomCategory) -> [String] {
         var candidates: [String] = []
         let primary = custom.primaryKeyword.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -134,24 +122,24 @@ enum QueryBuilder {
             .compactMap { $0?.trimmingCharacters(in: .whitespacesAndNewlines) }
             .filter { !$0.isEmpty }
 
-        // Base query: primary + extras
+        // EN: Base query: primary + extras. TR: Temel sorgu: birincil + ekler.
         var parts: [String] = []
         if !primary.isEmpty { parts.append(primary) }
         parts.append(contentsOf: extras)
         if !parts.isEmpty { candidates.append(parts.joined(separator: " ")) }
 
-        // primary + each extra
+        // EN: Primary + each extra. TR: Birincil + her bir ek.
         for e in extras { candidates.append("\(primary) \(e)") }
 
-        // Region display name variant
+        // EN: Region display name variant. TR: Bölge adı varyantı.
         if let r = regionDisplayName(hl: hl, gl: gl) {
             candidates.append("\(primary) \(r)")
         }
 
-        // Generic boosters
+        // EN: Generic boosters. TR: Genel güçlendiriciler.
         if !primary.isEmpty { candidates.append("\(primary) video") }
 
-        // Dedupe preserving order
+        // EN: Dedupe preserving order. TR: Sıra korunarak tekilleştir.
         var seen = Set<String>()
         return candidates.filter { seen.insert($0.lowercased()).inserted }
     }

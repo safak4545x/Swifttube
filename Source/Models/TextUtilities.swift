@@ -1,19 +1,7 @@
 /*
- File Overview (EN)
- Purpose: Centralized text helpers for HTML sanitization, timestamp detection, linkification, counts/dates normalization.
- Key Responsibilities:
- - Decode/sanitize HTML and convert rich text into AttributedString with links
- - Parse/format view counts and dates into consistent localized display
- - Provide reusable helpers for durations and thumbnails
- Used By: VideoDetailView, RelatedVideosView, comments UI, and various labels across the app.
-
- Dosya Özeti (TR)
- Amacı: HTML temizleme, zaman damgası tespiti, linkleştirme, sayı/tarih normalizasyonu için merkezi metin yardımcıları.
- Ana Sorumluluklar:
- - HTML'i çözümleyip temizlemek ve bağlantılı AttributedString üretmek
- - Görüntülenme sayısı ve tarihleri tutarlı yerelleştirilmiş biçimde üretmek
- - Süre ve küçük resim gibi tekrar kullanılabilir yardımcılar sağlamak
- Nerede Kullanılır: VideoDetailView, RelatedVideosView, yorum arayüzü ve uygulamadaki çeşitli etiketler.
+ Overview / Genel Bakış
+ EN: Central text helpers for HTML sanitization and linkifying timestamps/URLs.
+ TR: HTML temizleme ve zaman damgalarını/URL'leri linke dönüştürme için merkezi metin yardımcıları.
 */
 
 import Foundation
@@ -22,19 +10,20 @@ import SwiftUI
 // Shared text helpers for description/comment rendering.
 // Centralize HTML entity decode and timestamp linkification used across multiple views.
 struct TextUtilities {
+    // EN: Decode/sanitize HTML and produce clean plain text. TR: HTML'i çözüp temizleyerek sade metin üret.
     static func sanitizedHTML(_ raw: String?) -> String {
         guard var text = raw, !text.isEmpty else { return "" }
-        // Decode HTML entities first using existing utility.
+        // EN: Decode HTML entities (e.g., &amp; -> &). TR: HTML entity'leri çöz (örn. &amp; -> &).
         text = ParsingUtils.decodeHTMLEntities(text)
-        // Basic sanitization: remove script/style tags and normalize whitespace.
+        // EN: Strip script/style blocks; normalize whitespace. TR: script/style bloklarını çıkar; boşlukları normalize et.
         text = text.replacingOccurrences(of: "<script[^>]*>[\\s\\S]*?<\\/script>", with: "", options: .regularExpression)
         text = text.replacingOccurrences(of: "<style[^>]*>[\\s\\S]*?<\\/style>", with: "", options: .regularExpression)
-        // Replace <br> and <p> with newlines for readable SwiftUI Text.
+        // EN: Map <br> and </p> to newlines for readability. TR: <br> ve </p> etiketlerini yeni satıra çevir.
         text = text.replacingOccurrences(of: "<br[ \\t]*\\/?>", with: "\n", options: .regularExpression)
         text = text.replacingOccurrences(of: "<\\/p>", with: "\n\n", options: .regularExpression)
-        // Strip remaining HTML tags but keep inner text.
+        // EN: Strip remaining tags, keep inner text. TR: Kalan etiketleri temizle, iç metni koru.
         text = text.replacingOccurrences(of: "<[^>]+>", with: "", options: .regularExpression)
-        // If the whole text is a single line but contains multiple timestamps, break lines before later timestamps for readability.
+        // EN: If single-line text has many timestamps, insert newlines before later ones. TR: Tek satırda çok timestamp varsa, sonrakilerden önce satır başı ekle.
         if !text.contains("\n") {
             let pattern = "((?:[0-9]{1,2}:)?[0-5]?[0-9]:[0-5][0-9])"
             if let re = try? NSRegularExpression(pattern: pattern) {
@@ -45,20 +34,20 @@ struct TextUtilities {
                     var last = 0
                     for (i, m) in matches.enumerated() {
                         let start = m.range.location
-                        // Segment before the match
+                        // EN: Segment before the match. TR: Eşleşme öncesi bölüm.
                         if i == 0 {
                             out += ns.substring(with: NSRange(location: last, length: start - last))
                         } else {
-                            // Trim trailing whitespace from previous segment and inject a newline before this timestamp
+                            // EN: Trim trailing spaces of previous segment and insert newline. TR: Önceki bölümün sondaki boşluklarını kırp ve satır ekle.
                             var seg = ns.substring(with: NSRange(location: last, length: start - last))
                             while seg.last?.isWhitespace == true { seg.removeLast() }
                             out += seg + "\n"
                         }
-                        // Append the matched timestamp token
+                        // EN: Append matched timestamp token. TR: Eşleşen timestamp'i ekle.
                         out += ns.substring(with: m.range)
                         last = start + m.range.length
                     }
-                    // Append the tail
+                    // EN: Append remaining tail. TR: Kalan kuyruğu ekle.
                     if last < ns.length {
                         out += ns.substring(with: NSRange(location: last, length: ns.length - last))
                     }
@@ -66,21 +55,21 @@ struct TextUtilities {
                 }
             }
         }
-        // Collapse excessive blank lines.
+        // EN: Collapse 3+ newlines to 2. TR: 3+ yeni satırı 2'ye indir.
         text = text.replacingOccurrences(of: "\n{3,}", with: "\n\n", options: .regularExpression)
         return text.trimmingCharacters(in: .whitespacesAndNewlines)
     }
 
-    /// Finds timestamps like 0:15, 1:02:03 and returns ranges for linking.
+    /// EN: Find timestamps like 0:15 or 1:02:03 and return ranges. TR: 0:15 veya 1:02:03 gibi timestamp aralıklarını bul.
     static func timestampMatches(in text: String) -> [NSTextCheckingResult] {
-        // Matches H:MM:SS or MM:SS; avoid picking up version numbers like 1.2.3
+        // EN: Match H:MM:SS or MM:SS; avoid 1.2.3-like patterns. TR: H:MM:SS veya MM:SS; 1.2.3 benzeri kalıpları alma.
         let pattern = "(?:(?<!\\d)([0-9]{1,2}):)?([0-5]?[0-9]):([0-5][0-9])"
         let regex = try? NSRegularExpression(pattern: pattern, options: [])
         let range = NSRange(text.startIndex..<text.endIndex, in: text)
         return regex?.matches(in: text, options: [], range: range) ?? []
     }
 
-    /// Converts a timestamp string H:MM:SS or MM:SS to seconds.
+    /// EN: Convert H:MM:SS or MM:SS timestamp to seconds. TR: H:MM:SS veya MM:SS timestamp'ini saniyeye çevir.
     static func seconds(from timestamp: String) -> Int? {
         let parts = timestamp.split(separator: ":").map { Int($0) ?? 0 }
         guard parts.count == 2 || parts.count == 3 else { return nil }
@@ -88,10 +77,11 @@ struct TextUtilities {
         return parts[0] * 3600 + parts[1] * 60 + parts[2]
     }
 
-    /// Returns an AttributedString where URLs are linked and timestamps are converted to `ytseek://<seconds>` links.
+    /// EN: Create AttributedString with clickable URLs; convert timestamps into yT seek links. TR: Tıklanabilir URL'ler ve timestamp'leri yT arama (seek) bağlantılarına dönüştür.
     static func linkifiedAttributedString(from raw: String) -> AttributedString {
         let clean = sanitizedHTML(raw)
         let ns = clean as NSString
+        // EN: Token kind is either "url" or "timestamp". TR: Token türü "url" veya "timestamp".
         var tokens: [(range: NSRange, kind: String)] = [] // "url" | "timestamp"
 
         if let detector = try? NSDataDetector(types: NSTextCheckingResult.CheckingType.link.rawValue) {
@@ -104,6 +94,7 @@ struct TextUtilities {
             for m in tsMatches { tokens.append((m.range, "timestamp")) }
         }
         if tokens.isEmpty { return AttributedString(clean) }
+        // EN: Sort by location and drop overlapping tokens. TR: Konuma göre sırala, çakışan token'ları at.
         tokens.sort { $0.range.location < $1.range.location }
         var filtered: [(NSRange, String)] = []
         for t in tokens {

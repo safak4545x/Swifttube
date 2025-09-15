@@ -1,27 +1,17 @@
 /*
- File Overview (EN)
- Purpose: Language utilities including stopwords and preferred hl (UI language) resolution per region.
- Key Responsibilities:
- - Provide stopword lists by language code
- - Resolve (hl, gl) parameters used by services
- Used By: YouTubeAPIService and search helpers.
-
- Dosya Özeti (TR)
- Amacı: Dil yardımcıları; durak kelimeler ve bölgeye göre tercih edilen hl (UI dili) çözümleme.
- Ana Sorumluluklar:
- - Dil koduna göre stopword listeleri sunmak
- - Servislerce kullanılan (hl, gl) parametrelerini çözümlemek
- Nerede Kullanılır: YouTubeAPIService ve arama yardımcıları.
+ Overview / Genel Bakış
+ EN: Language utilities: resolve preferred UI language (hl), provide stopwords, and Shorts markers per language.
+ TR: Dil yardımcıları: tercih edilen arayüz dili (hl) çözümü, stopword listeleri ve dile göre Shorts işaretleyicileri.
 */
 
 import Foundation
 
 /// Tek noktadan dil-bölge kaynakları: stopwords, shorts işaretleyiciler, bölge->hl tercihleri.
 enum LanguageResources {
-    // Bölge koduna göre tercih edilen birincil dil (hl)
+    // EN: Preferred UI language (hl) by region code; fallback to app language. TR: Bölge koduna göre tercih edilen arayüz dili (hl); yoksa uygulama diline düşer.
     static func preferredHL(for region: String?) -> String {
         guard let code = region, !code.isEmpty, code != "GLOBAL" else {
-            // App dili (varsayılan): tr veya en
+            // EN: Use app language as default (tr or en). TR: Varsayılan olarak uygulama dilini kullan (tr veya en).
             let appLang = UserDefaults.standard.string(forKey: "appLanguage") ?? AppLanguage.en.rawValue
             return (appLang == AppLanguage.tr.rawValue) ? "tr" : "en"
         }
@@ -60,7 +50,7 @@ enum LanguageResources {
         }
     }
 
-    // Dil bazlı stopwords
+    // EN: Stopword list by UI language (hl). TR: Arayüz diline (hl) göre stopword listesi.
     static func stopwords(for hl: String) -> Set<String> {
         switch hl {
         case "tr": return ["ve","ile","bir","bu","şu","o","için","mi","mu","mü","de","da","en","çok","az","ama","fakat","ya","ya da","ki","şimdi","gibi","yeni","son","ilk","neden"]
@@ -71,7 +61,7 @@ enum LanguageResources {
         }
     }
 
-    // Shorts işaretleyicileri (başlık içi anahtar kelimeler)
+    // EN: Shorts markers detected in titles per language. TR: Dile göre başlıklarda tespit edilen Shorts işaretleyicileri.
     static func shortsMarkers(for hl: String) -> [String] {
         let map: [String: [String]] = [
             "en": ["#shorts", "shorts", "short video"],

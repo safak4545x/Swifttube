@@ -16,56 +16,59 @@
  Nerede Kullanılır: Shorts görünümleri/kontrolörleri, mini oynatıcı pencereleri, gezinme yöneticileri ve video katmanları.
 */
 
-// Centralized Notification.Name constants for Shorts coordination and related events.
-// TODO: Replace NotificationCenter usage with an ObservableObject/Coordinator once migration stabilizes.
+// EN: Centralized Notification.Name constants for Shorts coordination and related events.
+// TR: Shorts koordinasyonu ve ilgili olaylar için Notification.Name sabitlerinin merkezi tanımı.
+// TODO: EN: Replace NotificationCenter with a Coordinator when migration stabilizes. TR: Geçiş oturduğunda NotificationCenter yerine Koordinatör kullan.
 import Foundation
 
 extension Notification.Name {
-    // Shorts focus & lifecycle
+    // EN: Set focus to a specific Shorts video by id. TR: Belirli bir Shorts videosuna odaklan.
     static let shortsFocusVideoId = Notification.Name("shortsFocusVideoId")
+    // EN: Clear Shorts focus (reset state). TR: Shorts odak durumunu sıfırla.
     static let shortsResetVideoId = Notification.Name("shortsResetVideoId")
+    // EN: Stop all Shorts playback (when navigating away). TR: Tüm Shorts oynatmalarını durdur (sayfa değişince).
     static let shortsStopAll = Notification.Name("shortsStopAll")
 
-    // Navigation requests (triggered from compact window or per-video controls)
+    // EN: Navigation requests for Shorts (from compact window or per-video controls). TR: Shorts için gezinme istekleri (küçük pencereden veya video kontrollerinden).
     static let shortsRequestNext = Notification.Name("shortsRequestNext")
     static let shortsRequestPrev = Notification.Name("shortsRequestPrev")
-    // Toggle Shorts comments (userInfo: ["videoId": String])
+    // EN: Toggle Shorts comments; userInfo: ["videoId": String]. TR: Shorts yorumlarını aç/kapat; userInfo: ["videoId": String].
     static let shortsToggleComments = Notification.Name("shortsToggleComments")
 
-    // User interaction heuristic (e.g., to suppress autoplay logic after manual control)
+    // EN: Mark that user interacted with Shorts (e.g., disable autoplay heuristics). TR: Kullanıcı Shorts ile etkileşti (autoplay sezgisini devre dışı bırakmak için).
     static let userInteractedWithShorts = Notification.Name("userInteractedWithShorts")
 
-    // Player appearance toggles changed (to update existing webviews without reload)
+    // EN: Player appearance toggles changed; update webviews without reload. TR: Oynatıcı görünüm ayarları değişti; webview'leri yeniden yüklemeden güncelle.
     static let playerAppearanceChanged = Notification.Name("playerAppearanceChanged")
 
-    // Mini (PiP benzeri) oynatıcı kapandığında tetiklenir; userInfo["videoId"] içerir
+    // EN: Mini (PiP-like) player closed; userInfo["videoId"] and optional ["time": Double]. TR: Mini (PiP benzeri) oynatıcı kapandı; userInfo["videoId"], opsiyonel ["time": Double].
     static let miniPlayerClosed = Notification.Name("miniPlayerClosed")
-    // Mini oynatıcı açıldığında tetiklenir; userInfo["videoId"] içerir
+    // EN: Mini player opened; userInfo["videoId"]. TR: Mini oynatıcı açıldı; userInfo["videoId"].
     static let miniPlayerOpened = Notification.Name("miniPlayerOpened")
 
-    // Global navigation: Go to default Home page (used by the leftmost Home button in tab strip)
+    // EN: Global navigation to default Home (used by tab strip Home button). TR: Varsayılan Ana Sayfa'ya global geçiş (sekme şeridi Ana Sayfa tuşu).
     static let goHome = Notification.Name("goHome")
 
-    // Normal video embed lifecycle: stop specific or all videos (tab close, navigation etc.)
+    // EN: Stop a specific or all normal video embeds (tab close/navigation). TR: Belirli veya tüm normal video gömülerini durdur (sekme kapanışı/gezinme).
     static let stopVideoId = Notification.Name("stopVideoId")
     static let stopAllVideos = Notification.Name("stopAllVideos")
 
-    // Zaman atlama: userInfo["seconds"] zorunlu; opsiyonel olarak userInfo["videoId"] olabilir
+    // TR NOTE: Zaman atlama: userInfo["seconds"] zorunlu; opsiyonel userInfo["videoId"] olabilir.
     
-    // Open a video panel in playlist mode; userInfo requires ["playlistId": String]
+    // EN: Open a video in playlist mode using tabs; userInfo: ["playlistId": String, "videoId"?: String, "index"?: Int]. TR: Sekmeli playlist modunda video aç; userInfo: ["playlistId": String, "videoId"?: String, "index"?: Int].
     static let openPlaylistMode = Notification.Name("openPlaylistMode")
-    // Open in overlay (non-tab) playlist mode; userInfo requires ["playlistId": String]
+    // EN: Open in overlay (non-tab) playlist mode; userInfo mirrors openPlaylistMode. TR: Kaplama (sekmesiz) playlist modunda aç; userInfo openPlaylistMode ile aynı.
     static let openPlaylistModeOverlay = Notification.Name("openPlaylistModeOverlay")
+    // EN: Open a specific video within playlist mode from panel rows; userInfo: ["playlistId": String, "videoId": String]. TR: Panel satırlarından playlist modunda belirli videoyu aç; userInfo: ["playlistId": String, "videoId": String].
     static let openPlaylistVideo = Notification.Name("openPlaylistVideo")
 
-    // Bottom player bar (UI-only placeholder toggle)
+    // EN: Show/hide bottom mini player bar (UI only). TR: Alt mini oynatıcı çubuğunu göster/gizle (yalnız UI).
     static let showBottomPlayerBar = Notification.Name("showBottomPlayerBar")
     static let hideBottomPlayerBar = Notification.Name("hideBottomPlayerBar")
 
-    // Audio-only playlist playback control
+    // EN: Start audio-only playlist playback; userInfo: ["playlistId": String, "index"?: Int]. TR: Yalnız ses playlist çalmayı başlat; userInfo: ["playlistId": String, "index"?: Int].
     static let startAudioPlaylist = Notification.Name("startAudioPlaylist")
 
-    // Open normal Video panel (overlay) from external controls (e.g., mini player)
-    // userInfo: ["videoId": String, "time": Double? (seconds), "playlistId": String?]
+    // EN: Open normal Video overlay from external controls; userInfo: ["videoId": String, "time"?: Double, "playlistId"?: String]. TR: Harici kontrollerden normal Video kaplaması aç; userInfo: ["videoId": String, "time"?: Double, "playlistId"?: String].
     static let openVideoOverlay = Notification.Name("openVideoOverlay")
 }

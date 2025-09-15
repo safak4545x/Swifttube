@@ -15,12 +15,14 @@
  Nerede Kullanılır: Çeşitli UI akışları.
 */
 
+// EN: Foundation for base types, SwiftUI for @AppStorage and ObservableObject. TR: Temel tipler için Foundation, @AppStorage ve ObservableObject için SwiftUI.
 import Foundation
 import SwiftUI
 
-// Player appearance settings (stored via AppStorage / UserDefaults)
+// EN: Player appearance settings persisted in AppStorage (UserDefaults). TR: AppStorage'da (UserDefaults) saklanan oynatıcı görünüm ayarları.
 @MainActor
 final class PlayerAppearanceSettings: ObservableObject {
+    // EN: Top overlay controls/labels. TR: Üst katmandaki kontrol/etiketler.
     @AppStorage("hideChannelAvatar") var hideChannelAvatar: Bool = false { didSet { broadcast() } }
     @AppStorage("hideChannelName") var hideChannelName: Bool = false { didSet { broadcast() } }
     @AppStorage("hideVideoTitle") var hideVideoTitle: Bool = false { didSet { broadcast() } }
@@ -28,6 +30,7 @@ final class PlayerAppearanceSettings: ObservableObject {
     @AppStorage("hideContextMenu") var hideContextMenu: Bool = false { didSet { broadcast() } }
     @AppStorage("hideWatchLater") var hideWatchLater: Bool = false { didSet { broadcast() } }
     @AppStorage("hideShare") var hideShare: Bool = false { didSet { broadcast() } }
+    // EN: Bottom controls and overlays. TR: Alt kontroller ve katmanlar.
     @AppStorage("hideSubtitlesButton") var hideSubtitlesButton: Bool = false { didSet { broadcast() } }
     @AppStorage("hideQualityButton") var hideQualityButton: Bool = false { didSet { broadcast() } }
     @AppStorage("hideYouTubeLogo") var hideYouTubeLogo: Bool = false { didSet { broadcast() } }
@@ -36,6 +39,7 @@ final class PlayerAppearanceSettings: ObservableObject {
     @AppStorage("hideScrubPreview") var hideScrubPreview: Bool = false { didSet { broadcast() } }
     // Fullscreen ve PIP butonları artık her zaman gizli; ayar kaldırıldı.
 
+    // EN: Restore all controls to default (visible). TR: Tüm kontrolleri varsayılana (görünür) döndür.
     func reset() {
         hideChannelAvatar = false
         hideChannelName = false
@@ -51,15 +55,18 @@ final class PlayerAppearanceSettings: ObservableObject {
     hideChapterTitle = false
     hideScrubPreview = false
     }
+    // EN: Notify active players/webviews to update UI without full reload. TR: Aktif oynatıcıları/webview'leri tam yeniden yüklemeden UI güncellemesi için bilgilendir.
     private func broadcast() { NotificationCenter.default.post(name: .playerAppearanceChanged, object: nil) }
 }
 
+// EN: Simple display category with a title and URL. TR: Başlık ve URL içeren basit görüntü kategorisi.
 struct Category: Identifiable, Hashable {
     let id = UUID()
     let title: String
     let url: String
 }
 
+// EN: Sidebar navigation item with system icon name and target URL. TR: Sistem ikon adı ve hedef URL ile yan menü öğesi.
 struct SidebarItem: Identifiable, Hashable {
     let id: String
     let systemName: String
@@ -74,7 +81,7 @@ struct SidebarItem: Identifiable, Hashable {
     }
 }
 
-// App-wide language selection
+// EN: App-wide language selection enum with display names. TR: Görünen adlarla uygulama geneli dil seçimi enum'u.
 enum AppLanguage: String, CaseIterable, Identifiable {
     case en
     case tr

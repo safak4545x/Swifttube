@@ -185,17 +185,23 @@ struct SubscriptionsView: View {
         // Aboneler barını içeriğin üzerine, alt güvenli alana yerleştir
         .safeAreaInset(edge: .bottom, spacing: 0) {
             if !youtubeAPI.userSubscriptionsFromURL.isEmpty {
+                // EN: Bottom channel bar container. TR: Alt kanal çubuğu kapsayıcısı.
                 VStack(alignment: .leading, spacing: 0) {
+                    // EN: Reader enables programmatic scrolling by index. TR: Programatik olarak indekse kaydırma için kullanılır.
                     ScrollViewReader { proxy in
+                        // EN: Horizontal scroller for subscribed channels. TR: Abone olunan kanallar için yatay kaydırıcı.
                         ScrollView(.horizontal, showsIndicators: false) {
                             HStack(spacing: 12) {
+                                // EN: Enumerate to get stable numeric IDs. TR: Kararlı sayısal ID'ler için numaralandır.
                                 ForEach(Array(youtubeAPI.userSubscriptionsFromURL.enumerated()), id: \.offset) { index, channel in
                                     VStack(spacing: 6) {
+                                        // EN: Focus this channel and load its videos. TR: Bu kanala odaklan ve videolarını yükle.
                                         Button(action: {
                                             selectedChannel = channel
                                             showingChannelVideos = true
                                             youtubeAPI.fetchChannelVideos(channelId: channel.id)
                                         }) {
+                                            // EN: Channel avatar with loading placeholder. TR: Yükleme yer tutuculu kanal avatarı.
                                             AsyncImage(url: URL(string: channel.thumbnailURL)) { image in
                                                 image.resizable().aspectRatio(contentMode: .fill)
                                             } placeholder: {
@@ -206,8 +212,10 @@ struct SubscriptionsView: View {
                                             .overlay(Circle().stroke(Color.secondary.opacity(0.3), lineWidth: 1))
                                         }
                                         .buttonStyle(.plain)
+                                        // EN: Scroll anchor ID for this chip. TR: Bu öğe için kaydırma çıpası kimliği.
                                         .id(index)
 
+                                        // EN: Channel title under avatar. TR: Avatar altında kanal başlığı.
                                         Text(channel.title)
                                             .font(.caption2)
                                             .foregroundColor(.primary)
@@ -218,6 +226,7 @@ struct SubscriptionsView: View {
                                 }
                             }
                             .padding(.horizontal, 8)
+                            // EN: Measure total content width to decide button visibility. TR: Buton görünürlüğü için toplam içerik genişliğini ölç.
                             .background(GeometryReader { geometry in
                                 Color.clear
                                     .onAppear { updateContentWidth(geometry.size.width) }
@@ -235,12 +244,15 @@ struct SubscriptionsView: View {
                                 }
                         })
                         .onChange(of: scrollPosition) { _, newPosition in
-                            withAnimation(.easeInOut(duration: 0.3)) { proxy.scrollTo(newPosition, anchor: .center) } // EN: Smooth snap to index. TR: İndekse yumuşak kaydırma.
+                            // EN: Smoothly snap to the new index. TR: Yeni indekse yumuşakça geç.
+                            withAnimation(.easeInOut(duration: 0.3)) { proxy.scrollTo(newPosition, anchor: .center) }
+                            // EN: Update button visibility after scroll completes. TR: Kaydırma tamamlandıktan sonra buton görünürlüğünü güncelle.
                             DispatchQueue.main.asyncAfter(deadline: .now() + 0.35) { updateScrollButtonVisibility() }
                         }
                         .overlay(
                             HStack {
                                 HStack {
+                                    // EN: Show left button when not at start. TR: Başta değilken sol butonu göster.
                                     if showScrollButtons && scrollPosition > 0 {
                                         Button(action: { scrollLeft() }) {
                                             Image(systemName: "chevron.left")
@@ -259,12 +271,14 @@ struct SubscriptionsView: View {
                                 }
                                 .frame(width: 50)
                                 .padding(.leading, 8)
+                                // EN: Only toggle hover state when button can show. TR: Buton gösterilebilirken hover durumunu değiştir.
                                 .onHover { hovering in if showScrollButtons && scrollPosition > 0 { isHoveringLeftArea = hovering } }
 
                                 Spacer()
 
                                 HStack {
                                     Spacer().frame(maxWidth: 0)
+                                    // EN: Show right button when not at end. TR: Sonda değilken sağ butonu göster.
                                     if showScrollButtons && scrollPosition < youtubeAPI.userSubscriptionsFromURL.count - 1 {
                                         Button(action: { scrollRight() }) {
                                             Image(systemName: "chevron.right")
@@ -282,6 +296,7 @@ struct SubscriptionsView: View {
                                 }
                                 .frame(width: 50)
                                 .padding(.trailing, 8)
+                                // EN: Only toggle hover state when button can show. TR: Buton gösterilebilirken hover durumunu değiştir.
                                 .onHover { hovering in if showScrollButtons && scrollPosition < youtubeAPI.userSubscriptionsFromURL.count - 1 { isHoveringRightArea = hovering } }
                             }
                         )
@@ -290,10 +305,12 @@ struct SubscriptionsView: View {
                 .padding(.vertical, 10)
                 .padding(.horizontal, 12)
                 .background(
+                    // EN: Frosted macOS-style material background. TR: macOS tarzı buzlu materyal arka plan.
                     VisualEffectView(material: .titlebar, blendingMode: .withinWindow)
                         .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
                 )
                 .overlay(
+                    // EN: Subtle outline for separation. TR: Ayırım için ince çerçeve.
                     RoundedRectangle(cornerRadius: 16, style: .continuous)
                         .stroke(Color.white.opacity(0.08), lineWidth: 1)
                 )
@@ -301,26 +318,28 @@ struct SubscriptionsView: View {
                 .padding(.bottom, 12)
             }
         }
+        // EN: Page background aligned with system control color. TR: Sayfa arka planı sistem kontrol rengiyle uyumlu.
         .background(Color(NSColor.controlBackgroundColor))
 
         .onAppear {
-            // Önce kayıtlı abonelikleri yükle
+            // EN: Restore saved subscriptions from local storage. TR: Kayıtlı abonelikleri yerel depodan geri yükle.
             youtubeAPI.loadSubscriptionsFromUserDefaults()
             
-            // Sayfa açıldığında abonelik videolarını yükle
+            // EN: Fetch feed videos when we have subs but no cached list. TR: Abonelik varsa ama liste boşsa akış videolarını getir.
             if !youtubeAPI.userSubscriptionsFromURL.isEmpty && youtubeAPI.subscriptionVideos.isEmpty {
                 youtubeAPI.fetchSubscriptionVideos()
             }
-            // Shorts videoları da yükle
+            // EN: Fetch Shorts list if needed. TR: Gerekliyse Shorts listesini getir.
             if youtubeAPI.shortsVideos.isEmpty {
                 youtubeAPI.fetchShortsVideos(suppressOverlay: false)
             }
         }
         .toolbar {
             ToolbarItem(placement: .primaryAction) {
-                // Video paneli açıkken kapatma butonu göster
+                // EN: Show a close button while the video sheet is open. TR: Video paneli açıkken kapatma düğmesini göster.
                 if selectedVideo != nil {
                     Button(action: {
+                        // EN: Animate closing the video sheet. TR: Video panelini animasyonla kapat.
                         withAnimation(.easeInOut) { selectedVideo = nil }
                     }) {
                         Image(systemName: "xmark.circle.fill")
@@ -332,7 +351,7 @@ struct SubscriptionsView: View {
                     .buttonStyle(.plain)
                     .keyboardShortcut(.escape, modifiers: [])
                 } else if showingChannelVideos {
-                    // Sadece kanal videoları görünürken ve video paneli kapalıyken göster
+                    // EN: Return to aggregated feed (when showing only a channel). TR: Yalnızca bir kanalı gösterirken toplu akışa dön.
                     Button(i18n.t(.allVideos)) {
                         showingChannelVideos = false
                         selectedChannel = nil
@@ -343,29 +362,31 @@ struct SubscriptionsView: View {
     }
     
     // MARK: - Scroll Functions
+    // EN: Scroll left by three channels (bounded at 0). TR: Üç kanal sola kaydır (0'da sınırla).
     private func scrollLeft() {
-        // Birkaç kanal geriye git
         let newPosition = max(0, scrollPosition - 3)
         scrollPosition = newPosition
     }
     
+    // EN: Scroll right by three channels (bounded at last index). TR: Üç kanal sağa kaydır (son indekste sınırla).
     private func scrollRight() {
-        // Birkaç kanal ileriye git
         let totalChannels = youtubeAPI.userSubscriptionsFromURL.count
         let newPosition = min(totalChannels - 1, scrollPosition + 3)
         scrollPosition = newPosition
     }
     
+    // EN: Show left/right buttons only when content overflows viewport. TR: İçerik görünüm alanını aştığında sol/sağ butonları göster.
     private func updateScrollButtonVisibility() {
         showScrollButtons = contentWidth > scrollViewWidth
     }
 
-    // Tekrarlayan genişlik güncellemelerini sadeleştir
+    // EN: Cache total content width and recompute visibility. TR: Toplam içerik genişliğini sakla ve görünürlüğü yeniden hesapla.
     private func updateContentWidth(_ newWidth: CGFloat) {
         contentWidth = newWidth
         updateScrollButtonVisibility()
     }
 
+    // EN: Cache viewport width and recompute visibility. TR: Görünüm alanı genişliğini sakla ve görünürlüğü yeniden hesapla.
     private func updateScrollViewWidth(_ newWidth: CGFloat) {
         scrollViewWidth = newWidth
         updateScrollButtonVisibility()
@@ -375,5 +396,6 @@ struct SubscriptionsView: View {
 
 
 #Preview {
+    // EN: Preview with a fresh API service instance. TR: Yeni bir API servis örneği ile önizleme.
     SubscriptionsView(youtubeAPI: YouTubeAPIService())
 }

@@ -1,31 +1,24 @@
 /*
- File Overview (EN)
- Purpose: Lightweight localization system providing Localizer environment object and string keys.
- Key Responsibilities:
- - Define localization keys and lookup
- - Offer .t(...) helper for views
- Used By: Most SwiftUI views for UI text.
-
- Dosya Özeti (TR)
- Amacı: Localizer ortam nesnesi ve metin anahtarlarını sağlayan hafif yerelleştirme sistemi.
- Ana Sorumluluklar:
- - Yerelleştirme anahtarlarını ve arama mekanizmasını tanımlamak
- - Görünümler için .t(...) yardımcısını sunmak
- Nerede Kullanılır: Çoğu SwiftUI görünümünde UI metinleri.
+ Overview / Genel Bakış
+ EN: Lightweight runtime localization via a Localizer object, string keys, and a simple .t(...) helper.
+ TR: Localizer nesnesi, metin anahtarları ve basit .t(...) yardımıyla hafif çalışma zamanı yerelleştirmesi.
 */
 
 import Foundation
 import SwiftUI
 
-// Lightweight runtime localization without Xcode .lproj setup
+// EN: Runtime localization without .lproj bundles. TR: .lproj paketleri olmadan çalışma zamanı yerelleştirme.
 @MainActor
 final class Localizer: ObservableObject {
+    // EN: Persisted app language code (en/tr). TR: Kalıcı uygulama dil kodu (en/tr).
     @AppStorage("appLanguage") var code: String = AppLanguage.en.rawValue {
         didSet { objectWillChange.send() }
     }
 
+    // EN: Strongly-typed current language. TR: Türlü (strong) geçerli dil.
     var language: AppLanguage { AppLanguage(rawValue: code) ?? .en }
 
+    // EN: All localization keys used throughout the app. TR: Uygulama genelinde kullanılan tüm yerelleştirme anahtarları.
     enum Key: String, CaseIterable {
         case generalTab
         case appearanceTab
@@ -278,6 +271,7 @@ final class Localizer: ObservableObject {
     case addedToPlaylistToast
     }
 
+    // EN: English dictionary. TR: İngilizce sözlük.
     private let en: [Key: String] = [
         .generalTab: "General",
         .appearanceTab: "Appearance",
@@ -533,6 +527,7 @@ final class Localizer: ObservableObject {
     .addedToPlaylistToast: "Added to playlist"
     ]
 
+    // EN: Turkish dictionary. TR: Türkçe sözlük.
     private let tr: [Key: String] = [
         .generalTab: "Genel",
         .appearanceTab: "Görünüm",
@@ -775,6 +770,7 @@ final class Localizer: ObservableObject {
     .addedToPlaylistToast: "Playlist'e eklendi"
     ]
 
+    // EN: Lookup helper: returns localized string for the active language. TR: Arama yardımcısı: etkin dil için yerelleştirilmiş metni döndürür.
     func t(_ key: Key) -> String {
         switch language {
         case .en: return en[key] ?? key.rawValue

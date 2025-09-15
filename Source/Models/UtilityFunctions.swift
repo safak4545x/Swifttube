@@ -1,31 +1,20 @@
 /*
- File Overview (EN)
- Purpose: Small reusable utilities and extensions (safe subscripts, clamping, count/date formatting, parsing helpers).
- Key Responsibilities:
- - Provide safe collection access and value clamping
- - Format view counts, short counts, and humanized dates
- - Parse approximate numbers from localized text and normalize avatar/thumbnail URLs
- Used By: Many views and services that render counts/dates and handle arrays safely.
-
- Dosya Özeti (TR)
- Amacı: Küçük tekrar kullanılabilir yardımcılar ve uzatmalar (güvenli subscript, clamp, sayı/tarih formatlama, ayrıştırma).
- Ana Sorumluluklar:
- - Koleksiyonlara güvenli erişim ve değer sıkıştırma (clamp)
- - Görüntülenme sayısı, kısa sayı ve insansı tarih formatlama
- - Yerelleştirilmiş metinden yaklaşık sayı ayrıştırma ve avatar/thumbnail URL normalizasyonu
- Nerede Kullanılır: Dizileri güvenli kullanma ve sayı/tarih gösterimi yapan pek çok view ve servis.
+ Overview / Genel Bakış
+ EN: Reusable helpers and extensions: safe subscripts, clamping, count/date formatting, parsing, and URL normalization.
+ TR: Yeniden kullanılabilir yardımcılar ve uzatmalar: güvenli subscript, clamp, sayı/tarih formatlama, ayrıştırma ve URL normalizasyonu.
 */
 
+// EN: Foundation for Date/Locale/Regex utilities. TR: Tarih/Dil/Regex yardımcıları için Foundation.
 import Foundation
 
-// Safe index access for arrays
+// EN: Safe index access for any Collection. TR: Herhangi bir Collection için güvenli indeks erişimi.
 extension Collection {
     subscript(safe index: Index) -> Element? {
         return indices.contains(index) ? self[index] : nil
     }
 }
 
-// Clamp helper
+// EN: Clamp a comparable value to a range. TR: Karşılaştırılabilir bir değeri aralığa sıkıştır (clamp).
 extension Comparable {
     func clamped(to limits: ClosedRange<Self>) -> Self {
         if self < limits.lowerBound { return limits.lowerBound }
@@ -34,7 +23,7 @@ extension Comparable {
     }
 }
 
-// Utility Functions
+// EN: Format a view count string with localized suffix. TR: Görüntülenme sayısını yerelleştirilmiş son ek ile biçimlendir.
 func formatViewCount(_ countString: String) -> String {
     let lang = UserDefaults.standard.string(forKey: "appLanguage") ?? AppLanguage.en.rawValue
     // Preserve any non-numeric placeholder (e.g., Loading…)
@@ -60,7 +49,7 @@ func formatViewCount(_ countString: String) -> String {
     }
 }
 
-// Kısaltılmış sayı formatı (sadece sayı, son ek yok) - örn: 987, 1.2K, 3.4M, 1.1B
+// EN: Short count format (number only) e.g., 987, 1.2K, 3.4M, 1.1B. TR: Kısa sayı formatı (sadece sayı) örn: 987, 1.2K, 3.4M, 1.1B.
 func formatCountShort(_ countString: String) -> String {
     guard let count = Int(countString) else { return "0" }
     let d = Double(count)
@@ -75,14 +64,13 @@ func formatCountShort(_ countString: String) -> String {
     }
 }
 
-// Parse an approximate number from a localized string such as:
-//  "1.2K", "3,4K", "2 Mn", "1.5M", "12 B", or grouped digits like "123.456".
-// Returns an integer best-effort approximation (e.g., 1200, 3400, 2_000_000).
+// EN: Parse approximate number from localized strings (e.g., 1.2K, 3,4M, 2 Mn, 12 B, 123.456). Returns best-effort integer.
+// TR: Yerelleştirilmiş metinden yaklaşık sayı ayrıştır (örn. 1.2K, 3,4M, 2 Mn, 12 B, 123.456). En makul tam sayıyı döndürür.
 func approxNumberFromText(_ text: String) -> Int? {
     let s = text.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
     guard !s.isEmpty else { return nil }
 
-    // 1) Binlik gruplama: 1.234.567 / 1,234,567 / 1 234 567
+    // EN: 1) Grouped digits: 1.234.567 / 1,234,567 / 1 234 567. TR: 1) Binlik gruplama: 1.234.567 / 1,234,567 / 1 234 567.
     if let re = try? NSRegularExpression(pattern: #"(?<!\d)(\d{1,3}(?:[\.,\s]\d{3})+)(?!\d)"#, options: []),
        let m = re.firstMatch(in: s, range: NSRange(location: 0, length: (s as NSString).length)), m.numberOfRanges > 1 {
         let r = m.range(at: 1)
@@ -93,7 +81,7 @@ func approxNumberFromText(_ text: String) -> Int? {
         }
     }
 
-    // 2) Sonekli yaklaşık sayılar: 1.2K, 3,4M, 2 Mn, 1B
+    // EN: 2) Suffix-based numbers: 1.2K, 3,4M, 2 Mn, 1B. TR: 2) Sonekli sayılar: 1.2K, 3,4M, 2 Mn, 1B.
     if let re = try? NSRegularExpression(pattern: #"(?i)(?<!\d)(\d+(?:[\.,]\d+)?)\s*(k|m|b|mn)\b"#, options: []),
        let m = re.firstMatch(in: s, range: NSRange(location: 0, length: (s as NSString).length)), m.numberOfRanges > 2 {
         let ns = s as NSString
@@ -110,7 +98,7 @@ func approxNumberFromText(_ text: String) -> Int? {
         return Int(val * mult)
     }
 
-    // 3) Düz rakam (örn: 51552)
+    // EN: 3) Plain integer digits (e.g., 51552). TR: 3) Düz rakamlar (örn: 51552).
     if let re = try? NSRegularExpression(pattern: #"(?<!\d)(\d{2,})(?!\d)"#, options: []),
        let m = re.firstMatch(in: s, range: NSRange(location: 0, length: (s as NSString).length)), m.numberOfRanges > 1 {
         let ns = s as NSString
@@ -120,6 +108,7 @@ func approxNumberFromText(_ text: String) -> Int? {
     return nil
 }
 
+// EN: Format an ISO8601 date string into a relative “time ago” label (localized). TR: ISO8601 tarih dizgesini yerelleştirilmiş "önce" etiketine çevir.
 func formatDate(_ dateString: String) -> String {
     let formatter = DateFormatter()
     formatter.dateFormat = "yyyy-MM-dd'T'HH:mm:ss'Z'"
@@ -134,6 +123,7 @@ func formatDate(_ dateString: String) -> String {
     let components = calendar.dateComponents([.year, .month, .weekOfYear, .day, .hour, .minute], from: date, to: now)
     let lang = UserDefaults.standard.string(forKey: "appLanguage") ?? AppLanguage.en.rawValue
 
+    // EN: Helper to format singular/plural units per language. TR: Dile göre tekil/çoğul birim formatlayan yardımcı.
     func ago(_ value: Int, singular: String, plural: String) -> String {
         if lang == AppLanguage.tr.rawValue {
             return value == 1 ? "1 \(singular) önce" : "\(value) \(plural) önce"
@@ -164,10 +154,11 @@ func formatDate(_ dateString: String) -> String {
     return lang == AppLanguage.tr.rawValue ? "Az önce" : "Just now"
 }
 
-// MARK: - Relative date parsing (language-agnostic input -> ISO8601)
+// MARK: - Relative date parsing (language-agnostic input -> ISO8601) / Göreli tarih ayrıştırma
 /// Convert a localized relative time string (e.g., "5 days ago", "3 yıl önce", "vor 2 Jahren",
 /// "hace 2 años", "il y a 3 mois", "2 недели назад") to an ISO8601 date string.
 /// The output is purely date math and does not depend on device region; use formatDate(_) to display.
+// EN: Convert localized relative time (e.g., "5 days ago", "3 yıl önce") to ISO8601 date. TR: Yerelleştirilmiş göreli zamanı (örn. "3 yıl önce") ISO8601'e çevir.
 func relativeStringToISO(_ raw: String) -> String? {
     let lower = raw.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
     guard !lower.isEmpty else { return nil }
@@ -175,15 +166,15 @@ func relativeStringToISO(_ raw: String) -> String? {
     let digits = String(lower.unicodeScalars.filter { CharacterSet.decimalDigits.contains($0) })
     guard let n = Int(digits), n > 0 else { return nil }
 
-    // Tokenize into words using unicode letters; ensures we match whole words
-    // This prevents collisions like TR "ay" (month) matching EN "days".
+    // EN: Tokenize by unicode letters to match whole words; avoids collisions like TR "ay" vs EN "days".
+    // TR: Unicode harflerle böl, tam kelime eşleşmesi olsun; TR "ay" ile EN "days" çakışmasını önler.
     let wordSeparator = CharacterSet.letters.inverted
     let words = lower.components(separatedBy: wordSeparator).filter { !$0.isEmpty }
     let wordSet = Set(words)
     // Helper to test if any of the tokens appear as whole words
     func has(_ tokens: [String]) -> Bool { tokens.contains { wordSet.contains($0) } }
 
-    // Common unit keywords across several languages
+    // EN: Common unit tokens across languages. TR: Birçok dilde ortak birim anahtarları.
     let yearTokens = [
         // TR / EN / DE
         "yıl", "year", "years", "yr", "yrs", "jahr", "jahre", "jahren",
@@ -221,8 +212,7 @@ func relativeStringToISO(_ raw: String) -> String? {
         "minuto", "minuti", "minutos", "минута", "минуты", "минут", "分", "分钟"
     ]
 
-    // Determine the unit in a safe order (year -> minute).
-    // Uses exact word matching to avoid substring false positives.
+    // EN: Detect unit in safe order (year → minute) using whole-word matches. TR: Tam kelime eşleşmesiyle güvenli sırada birimi bul (yıl → dakika).
     let unit: Calendar.Component? =
         has(yearTokens) ? .year :
         has(monthTokens) ? .month :
@@ -237,12 +227,13 @@ func relativeStringToISO(_ raw: String) -> String? {
     return df.string(from: date)
 }
 
-// MARK: - Absolute date parsing (e.g., "Sep 11, 2025")
+// MARK: - Absolute date parsing (e.g., "Sep 11, 2025") / Mutlak tarih ayrıştırma
 /// Convert common absolute date strings to ISO8601 date string (UTC midnight).
 /// Supported examples:
 ///  - EN: "MMM d, yyyy" (e.g., "Sep 11, 2025"), "MMMM d, yyyy" (e.g., "September 11, 2025")
 ///  - TR: "d MMM yyyy" (e.g., "11 Eyl 2025"), "d MMMM yyyy" (e.g., "11 Eylül 2025")
 /// Returns nil when not recognized.
+// EN: Convert common absolute dates (EN/TR) to ISO8601 midnight UTC. TR: Yaygın mutlak tarihleri (EN/TR) ISO8601 gece yarısı UTC'ye çevir.
 func absoluteDateToISO(_ raw: String) -> String? {
     let trimmed = raw.trimmingCharacters(in: .whitespacesAndNewlines)
     guard !trimmed.isEmpty else { return nil }
@@ -271,8 +262,9 @@ func absoluteDateToISO(_ raw: String) -> String? {
     return nil
 }
 
-// MARK: - Duration helpers
+// MARK: - Duration helpers / Süre yardımcıları
 /// Convert a YouTube-style duration string like "9:58" or "1:02:03" into seconds.
+// EN: Convert "mm:ss" or "hh:mm:ss" to seconds. TR: "dd:ss" veya "ss:dd:ss" biçimini saniyeye çevir.
 func durationTextToSeconds(_ text: String) -> Int? {
     let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
     guard !trimmed.isEmpty, trimmed.contains(":") else { return nil }
@@ -290,15 +282,17 @@ func durationTextToSeconds(_ text: String) -> Int? {
 
 /// Heuristic: Treat as "short" if duration is known and < 60 seconds.
 /// Returns true only when we can confidently say it's under 60s.
+// EN: Heuristic: determine if a video is < 60s using known fields. TR: Sezgisel: bilinen alanlarla videonun < 60 sn olup olmadığını belirle.
 func isUnderOneMinute(_ v: YouTubeVideo) -> Bool {
     if let secs = v.durationSeconds { return secs < 60 }
     if let secs = durationTextToSeconds(v.durationText) { return secs < 60 }
     return false
 }
 
-// MARK: - Central normalization helpers (single source of truth)
+// MARK: - Central normalization helpers (single source of truth) / Merkezileştirilmiş normalizasyon yardımcıları
 /// Normalize any viewCount text into a consistent localized display using formatViewCount.
 /// Accepts raw strings like "1.2K", "123.456 görüntüleme", or placeholders. Returns a stable label.
+// EN: Normalize any raw viewCount text to a stable localized label. TR: Her türlü viewCount metnini yerelleştirilmiş kararlı etikete normalleştir.
 func normalizeViewCountText(_ raw: String) -> String {
     let trimmed = raw.trimmingCharacters(in: .whitespacesAndNewlines)
     guard !trimmed.isEmpty else { return "" }
@@ -312,6 +306,7 @@ func normalizeViewCountText(_ raw: String) -> String {
 
 /// Normalize publishedAt display. If ISO provided use it; otherwise try absolute -> relative -> passthrough.
 /// Returns (displayText, isoStringOptional)
+// EN: Normalize publishedAt display with ISO fallback chain. TR: publishedAt gösterimini ISO yedek zinciriyle normalleştir.
 func normalizePublishedDisplay(_ raw: String, iso: String? = nil) -> (String, String?) {
     // 1) If ISO known, display directly
     if let isoVal = iso, !isoVal.isEmpty { return (formatDate(isoVal), isoVal) }
@@ -325,15 +320,17 @@ func normalizePublishedDisplay(_ raw: String, iso: String? = nil) -> (String, St
     return (trimmed, nil)
 }
 
-// MARK: - Image/Avatar URL normalization (single source)
+// MARK: - Image/Avatar URL normalization (single source) / Resim/Avatar URL normalizasyonu
 /// Normalize avatar/image URLs for consistent caching and https usage.
 /// - Strips query parameters, converts // to https:, upgrades http to https.
 /// - Leaves size hints embedded in the path (e.g., "=s88", "-no") intact.
+// EN: Normalize avatar/thumbnail URLs (https, strip query). TR: Avatar/küçük resim URL'lerini normalize et (https, query temizle).
 func normalizeAvatarURL(_ raw: String) -> String {
     return ParsingUtils.normalizeURL(raw)
 }
 
-// MARK: - YouTube thumbnail helpers
+// MARK: - YouTube thumbnail helpers / YouTube küçük resim yardımcıları
+// EN: Supported YouTube thumbnail qualities. TR: Desteklenen YouTube küçük resim kaliteleri.
 enum YTThumbnailQuality: String {
     case defaultSmall = "default"     // 120x90
     case mqdefault = "mqdefault"      // 320x180
@@ -343,6 +340,7 @@ enum YTThumbnailQuality: String {
 }
 
 /// Build a stable i.ytimg.com thumbnail URL for a video id and desired quality.
+// EN: Build a stable i.ytimg.com URL for given id and quality. TR: Verilen id ve kalite için sabit i.ytimg.com URL'si oluştur.
 func youtubeThumbnailURL(_ videoId: String, quality: YTThumbnailQuality = .mqdefault) -> String {
     return "https://i.ytimg.com/vi/\(videoId)/\(quality.rawValue).jpg"
 }

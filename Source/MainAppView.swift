@@ -1,96 +1,88 @@
 /*
- File Overview (EN)
- Purpose: Hosts the app's root SwiftUI view (MainAppView) and defines YouTubeAPIService, the central observable model orchestrating data fetching, caching, region handling, playlists, and UI-related states.
- Key Responsibilities (YouTubeAPIService):
- - Manage videos, shorts, subscriptions, search, comments, related, and live viewers data
- - Coordinate region selection (hl/gl cookies), caches, and initial home load
- - Provide playlist helpers (local + remote) and user playlist persistence
- - Expose utility finders and normalization helpers for UI
- Key Responsibilities (MainAppView):
- - Simple wrapper that presents MainContentView as the app's root content
- Used By: SwifttubeApp injects this into WindowGroup.
-
- Dosya Özeti (TR)
- Amacı: Uygulamanın kök SwiftUI görünümünü (MainAppView) barındırır ve veri orkestrasyonunun merkezi olan YouTubeAPIService'i tanımlar; veri çekme, önbellek, bölge yönetimi ve playlist işlevlerini sağlar.
- Ana Sorumluluklar (YouTubeAPIService):
- - Videolar, shorts, abonelikler, arama, yorumlar, ilgili içerik ve canlı izleyiciler verisini yönetmek
- - Bölge seçimi (hl/gl çerezleri), cache'ler ve tek seferlik başlangıç yüklemesini koordine etmek
- - Playlist yardımcıları (yerel + uzak) ve kullanıcı playlist kalıcılığı sağlamak
- - UI için bulucu ve normalizasyon yardımcılarını sunmak
- Ana Sorumluluklar (MainAppView):
- - Uygulamanın kök içeriği olarak MainContentView'i sunan basit bir sarmalayıcı
- Nerede Kullanılır: SwifttubeApp, WindowGroup içinde bunu kullanır.
+ Overview / Genel Bakış
+ EN: Root view wrapper (MainAppView) and the central observable model (YouTubeAPIService) that orchestrates data, caching, region, playlists, and UI state.
+ TR: Kök görünüm (MainAppView) ve veriyi, önbelleği, bölgeyi, playlist’leri ve UI durumunu yöneten merkezi gözlemlenebilir model (YouTubeAPIService).
 */
 
+// EN: Foundation utilities, SwiftUI for views, NaturalLanguage for keyword extraction. TR: Foundation araçları, görünümler için SwiftUI, anahtar sözcük çıkarımı için NaturalLanguage.
 import Foundation
 import SwiftUI
 import NaturalLanguage
 
-// YouTube API Service
+// EN: Central app model publishing YouTube-related state and operations. TR: YouTube ile ilgili durum ve işlemleri yayınlayan merkezi uygulama modeli.
 class YouTubeAPIService: ObservableObject {
+    // EN: Long-video feed rendered on Home and other pages. TR: Ana sayfa ve diğer sayfalarda gösterilen uzun video akışı.
     @Published var videos: [YouTubeVideo] = []
+    // EN: Shorts rail content. TR: Shorts şeridi içeriği.
     @Published var shortsVideos: [YouTubeVideo] = []
-    @Published var subscriptionVideos: [YouTubeVideo] = [] // Abone videolarını ayrı tut
-    // Eski birleşik loading bayrağı (hala bazı görünümler kullanıyor). Artık alt bayrakların OR'u.
+    // EN: Latest videos from subscriptions (separate list). TR: Aboneliklerden en yeni videolar (ayrı liste).
+    @Published var subscriptionVideos: [YouTubeVideo] = []
+    // EN: Legacy combined loading flag; derived as OR of sub-flags. TR: Eski birleşik yükleme bayrağı; alt bayrakların OR’u.
     @Published var isLoading: Bool = false
+    // EN: In-flight status for long videos. TR: Uzun videoların yüklenme durumu.
     @Published var isLoadingVideos: Bool = false
+    // EN: In-flight status for shorts. TR: Shorts yüklenme durumu.
     @Published var isLoadingShorts: Bool = false
-    // Global tam ekran loading overlay için ayrı bayrak (isLoading buton spinnerları için de kullanılıyor)
+    // EN: Global full-screen loading overlay flag. TR: Global tam ekran yükleme katmanı bayrağı.
     @Published var showGlobalLoading = false
+    // EN: User-visible error message. TR: Kullanıcıya gösterilen hata mesajı.
     @Published var error: String?
+    // EN: Currently viewed/fetched channel info. TR: Görüntülenen/çekilen kanal bilgisi.
     @Published var channelInfo: YouTubeChannel? = nil
+    // EN: Comments for a video and related state. TR: Bir video için yorumlar ve ilgili durum.
     @Published var comments: [YouTubeComment] = []
     @Published var relatedVideos: [YouTubeVideo] = []
     @Published var isLoadingRelated: Bool = false
     @Published var nextCommentsPageToken: String? = nil
-    // Comments context: which videoId comments belong to (for local replies fetching)
+    // EN: Context for which video the comments belong to. TR: Yorumların ait olduğu video bağlamı.
     @Published var currentCommentsVideoId: String? = nil
-    // Kanal popüler videoları (video detail ile çakışmaması için ayrı state)
+    // EN: Popular videos of the current channel (separate from detail). TR: Geçerli kanalın popüler videoları (detail’den ayrı).
     @Published var currentChannelPopularVideos: [YouTubeVideo] = []
     
-    // Like sayıları için canlı sözlük
+    // EN: Live-updating like counts per video id. TR: Video id başına beğeni sayıları.
     @Published var likeCountByVideoId: [String: String] = [:]
-    // Eski scraping iş akışından kalan ancak şu an minimal kullanım: tekrar tetiklemeyi engellemek için
+    // EN: Internal guard to avoid duplicate like fetches. TR: Beğeni sorgularını çoğaltmayı önleyen koruma.
     var fetchingLikeFor: Set<String> = []
 
-    // Canlı izleyici sayıları (on-demand watch sayfasından çekilir)
+    // EN: Live viewers by video id (pulled on demand). TR: Video id’ye göre canlı izleyici sayısı (isteğe bağlı çekim).
     @Published var liveViewersByVideoId: [String: String] = [:]
     private var fetchingLiveViewers: Set<String> = []
     
-    // Channel ve Playlist arama için yeni properties
+    // EN: Newer properties for channel and playlist search flows. TR: Kanal ve playlist arama akışları için yeni özellikler.
     @Published var searchedChannels: [YouTubeChannel] = []
     @Published var searchedPlaylists: [YouTubePlaylist] = []
     @Published var channelVideos: [YouTubeVideo] = []
     @Published var playlistVideos: [YouTubeVideo] = []
-    // Yerel playlist içerik cache'i: playlistId -> [YouTubeVideo]
+    // EN: Local cache of playlist items: playlistId -> videos. TR: Yerel playlist içerik önbelleği: playlistId -> videolar.
     @Published var cachedPlaylistVideos: [String: [YouTubeVideo]] = [:]
-    // Playlist toplam öğe sayısı (remote count veya local videoIds.count)
+    // EN: Total item count per playlist (remote count or local ids count). TR: Playlist başına toplam öğe sayısı (uzak sayı veya yerel id sayısı).
     @Published var totalPlaylistCountById: [String: Int] = [:]
-    // In-flight playlist count fetches (for skeleton UI)
+    // EN: IDs of playlists whose counts are loading (skeleton UI). TR: Sayımı yüklenen playlist ID’leri (iskelet UI için).
     @Published var fetchingPlaylistCountIds: Set<String> = []
-    // User imported playlists (CSV)
+    // EN: User-imported playlists (CSV). TR: Kullanıcı tarafından içe aktarılan playlist’ler (CSV).
     @Published var userPlaylists: [YouTubePlaylist] = [] {
         didSet { saveUserPlaylistsToUserDefaults() }
     }
+    // EN: Global search-in-progress flag. TR: Global arama sürüyor bayrağı.
     @Published var isSearching = false
 
-    // Startup/async orchestration
+    // EN: Startup orchestration and one-time guards. TR: Başlatma orkestrasyonu ve tek-seferlik korumalar.
     @Published private(set) var didPerformInitialHomeLoad = false
     @Published private(set) var didResolveRegion = false
     var categoryFetchToken: UUID? = nil
     var shortsFetchToken: UUID? = nil
-    // One-time retry guard for initial empty home fetch
+    // EN: One-time retry guard if home feed is empty at first. TR: İlk denemede ana akış boşsa tek seferlik tekrar deneme.
     private var didRetryEmptyHome = false
-    // Region init + initial-load coordination
+    // EN: Region initialization coordination flags. TR: Bölge başlatma koordinasyon bayrakları.
     private var isInitializingRegion: Bool = true
     private var pendingInitialHomeLoad: Bool = false
 
-    // MARK: - Region selection (Algorithm > Location)
+    // MARK: - Region selection (Algorithm > Location) / Bölge seçimi
     @Published var selectedRegion: String = "GLOBAL" {
         didSet {
-            // Avoid redundant work when assigning the same region value
+            // EN: Ignore if region didn’t actually change. TR: Bölge değişmediyse görmezden gel.
             if oldValue == selectedRegion { return }
-            // During app startup while resolving region, skip heavy refresh to avoid double fetches.
+            // EN: During startup, only set cookies and post notification. TR: Başlangıçta sadece çerezleri ayarla ve bildirim gönder.
             if isInitializingRegion {
                 Task {
                     await persistSelectedRegion()
@@ -100,13 +92,13 @@ class YouTubeAPIService: ObservableObject {
                 NotificationCenter.default.post(name: .selectedRegionChanged, object: selectedRegion)
                 return
             }
-            // Reset in-memory lists immediately so UI reflects refresh state
+            // EN: Clear in-memory lists to reflect region refresh. TR: Bölge yenilenmesini yansıtmak için bellek içi listeleri temizle.
             videos.removeAll()
             shortsVideos.removeAll()
             relatedVideos.removeAll()
-            // Clear data caches so region-specific content doesn't reuse stale entries
+            // EN: Clear caches and re-seed cookies for the new region. TR: Önbellekleri temizle ve yeni bölge için çerezleri ayarla.
             Task {
-                // Preserve user preferences (custom categories) while clearing caches
+                // EN: Preserve custom categories across cache flush. TR: Önbellek temizlenirken özel kategorileri koru.
                 let preservedCategories = self.customCategories
                 await GlobalCaches.json.clear()
                 await GlobalCaches.images.clear()
@@ -114,10 +106,10 @@ class YouTubeAPIService: ObservableObject {
                 URLCache.shared.removeAllCachedResponses()
                 let (hl, gl) = self.currentLocaleParams()
                 await resetYouTubeCookies(hl: hl, gl: gl)
-                // Restore preserved preferences so custom categories remain after location change
+                // EN: Restore preferences after region change. TR: Bölge değişiminden sonra tercihleri geri yükle.
                 await GlobalCaches.json.set(key: self.customCategoriesCacheKey(), value: preservedCategories, ttl: CacheTTL.sevenDays * 52)
                 await MainActor.run {
-                    // Region change: refresh Home or selected custom category, and refresh Shorts
+                    // EN: Refresh Home/selected category and Shorts; resume search if active. TR: Ana/özel kategori ve Shorts’u yenile; arama açıksa sürdür.
                           if let sel = self.selectedCustomCategoryId,
                               let custom = self.customCategories.first(where: { $0.id == sel }) {
                                 self.fetchVideos(for: custom, suppressOverlay: true)
@@ -134,20 +126,20 @@ class YouTubeAPIService: ObservableObject {
         }
     }
     
-    // Kullanıcı channel bilgileri için yeni properties
+    // EN: User channel and subscriptions parsed from a URL input. TR: URL girişinden çözümlenen kullanıcı kanalı ve abonelikler.
     @Published var userChannelFromURL: YouTubeChannel?
     @Published var userSubscriptionsFromURL: [YouTubeChannel] = []
     @Published var isLoadingUserData = false
     @Published var userChannelError: String?
     
-    // Custom Categories
+    // EN: Custom categories state and current selection. TR: Özel kategoriler durumu ve mevcut seçim.
     @Published var customCategories: [CustomCategory] = [] {
         didSet { persistCustomCategories() }
     }
     @Published var selectedCustomCategoryId: UUID? = nil
     
     init() {
-        // Tamamen yerel mod: sadece kullanıcı abonelik ve geçmiş verilerini yükle
+        // EN: Local-first startup: load subscriptions/history, then preferences. TR: Yerel-öncelikli başlangıç: abonelik/ geçmiş ve ardından tercihleri yükle.
         loadSubscriptionsFromUserDefaults()
         loadWatchHistoryFromUserDefaults()
     loadUserPlaylistsFromUserDefaults()
@@ -155,14 +147,14 @@ class YouTubeAPIService: ObservableObject {
         loadCustomCategories()
     }
     
-    // Watch History - Geçmiş
+    // EN: Watch History storage (capped to 50). TR: İzleme Geçmişi (50 ile sınırlı).
     @Published var watchHistory: [YouTubeVideo] = []
     let maxHistoryItems = 50 // Maksimum geçmiş video sayısı
     
-    // Arama durumu takibi
+    // EN: Tracks whether search results page is being shown. TR: Arama sonuçları sayfasının görünüp görünmediği.
     @Published var isShowingSearchResults = false
     
-    // API Key (YouTube Data API v3 için) - Settings ekranından girilir ve UserDefaults'ta saklanır
+    // EN: YouTube Data API v3 key, stored via Settings. TR: YouTube Data API v3 anahtarı; Ayarlar üzerinden saklanır.
     @Published var apiKey: String = UserDefaults.standard.string(forKey: "YouTubeAPIKey") ?? "" {
         didSet {
             UserDefaults.standard.set(apiKey, forKey: "YouTubeAPIKey")
@@ -170,25 +162,26 @@ class YouTubeAPIService: ObservableObject {
     }
     @Published var currentSearchQuery = ""
 
-    // Arama filtreleri
+    // EN: Active search filters (date, duration). TR: Etkin arama filtreleri (tarih, süre).
     @Published var activeDateFilter: SearchDateFilter = .none
     @Published var activeDurationFilter: SearchDurationFilter = .none
 
-    // MARK: - Subscriber Count Fetch State (for shimmer + debounce)
+    // MARK: - Subscriber Count Fetch State / Abone sayısı çekimi
     @Published var fetchingSubscriberCountIds: Set<String> = [] // IDs currently in-flight
-    // Pending IDs accumulated during debounce window (internal so extension in another file can access)
+    // EN: Pending IDs during debounce window. TR: Debounce penceresinde biriken ID’ler.
     var pendingSubscriberRefreshIds: Set<String> = []
     var subscriberRefreshDebounceWorkItem: DispatchWorkItem? = nil
-    // One-time logging guards
+    // EN: One-time logging flags. TR: Tek seferlik günlükleme bayrakları.
     var didLogMissingSubscriberAPIKey = false
     var didLogQuotaOrForbidden = false
 
-    // Playlist count refresh queue (official API)
+    // EN: Playlist count refresh queue (official API). TR: Playlist sayım yenileme kuyruğu (resmi API).
     var pendingPlaylistCountIds: Set<String> = []
     var playlistCountDebounceWorkItem: DispatchWorkItem? = nil
 }
 
 extension YouTubeAPIService {
+    // EN: Add a remote searched playlist into user's local playlists if not present. TR: Uzak aranan bir playlist’i yoksa kullanıcının yerel playlist’lerine ekle.
     /// Add a searched (remote) playlist into user's playlists if not already present.
     @MainActor
     func addSearchedPlaylistToUser(_ p: YouTubePlaylist) {
@@ -206,6 +199,7 @@ extension YouTubeAPIService {
         userPlaylists.append(item)
         userPlaylists.sort { $0.title.localizedCaseInsensitiveCompare($1.title) == .orderedAscending }
     }
+    // EN: Remove playlist and clear its caches. TR: Playlist’i kaldır ve önbelleklerini temizle.
     /// Remove a playlist from user's playlists by id and clear related caches.
     @MainActor
     func removeUserPlaylist(playlistId: String) {
@@ -216,6 +210,7 @@ extension YouTubeAPIService {
         cachedPlaylistVideos[playlistId] = nil
         totalPlaylistCountById[playlistId] = nil
     }
+    // EN: Ensure initial Home load happens once per app session. TR: Başlangıçtaki Ana yükleme her oturumda bir kez çalışsın.
     /// Ensures the initial home content (trending + shorts + subscriptions) is loaded only once per app session.
     @MainActor
     func performInitialHomeLoadIfNeeded() {
@@ -230,7 +225,7 @@ extension YouTubeAPIService {
     }
 
     private func runInitialHomeLoadNow() {
-        // Show global overlay to signal initial loading
+        // EN: Show global overlay and fetch starting datasets. TR: Global katmanı göster ve başlangıç verilerini çek.
         showGlobalLoading = true
         fetchHomeRecommendations()
         fetchShortsVideos()
@@ -247,11 +242,11 @@ extension YouTubeAPIService {
             } else {
                 newValue = "GLOBAL"
             }
-            // Only assign if it actually differs to prevent extra refresh on startup
+            // EN: Assign only if different to avoid redundant refresh. TR: Gereksiz yenilemeyi önlemek için farklıysa ata.
             if newValue != self.selectedRegion {
                 self.selectedRegion = newValue
             }
-            // Region resolution completed (even if unchanged)
+            // EN: Region resolution done; trigger pending initial load if queued. TR: Bölge çözümü tamam; bekleyen ilk yükleme varsa tetikle.
             self.isInitializingRegion = false
             self.didResolveRegion = true
             // If initial load was requested earlier, perform it now exactly once
@@ -263,6 +258,7 @@ extension YouTubeAPIService {
     }
 
     private func persistSelectedRegion() async {
+        // EN: Persist region preference for ~1 year. TR: Bölge tercihini ~1 yıl sakla.
         await GlobalCaches.json.set(key: regionCacheKey(), value: selectedRegion, ttl: CacheTTL.sevenDays * 52) // ~1 year
     }
 
@@ -277,6 +273,7 @@ extension YouTubeAPIService {
     private func customCategoriesCacheKey() -> CacheKey { CacheKey("preferences:customCategories") }
 
     private func loadCustomCategories() {
+        // EN: Load saved custom categories from cache. TR: Önbellekten kayıtlı özel kategorileri yükle.
         Task { @MainActor in
             if let decoded: [CustomCategory] = await GlobalCaches.json.get(key: customCategoriesCacheKey(), type: [CustomCategory].self) {
                 self.customCategories = decoded
@@ -285,6 +282,7 @@ extension YouTubeAPIService {
     }
 
     private func persistCustomCategories() {
+        // EN: Persist current custom categories. TR: Mevcut özel kategorileri kalıcılaştır.
         let value = customCategories
         Task { await GlobalCaches.json.set(key: customCategoriesCacheKey(), value: value, ttl: CacheTTL.sevenDays * 52) }
     }
@@ -301,6 +299,7 @@ extension YouTubeAPIService {
     }
 
     // MARK: - Fetch videos for Custom Category (local search adapter only)
+    // EN: Fetch long videos for a Custom Category using a query builder and strict filters. TR: Özel Kategori için sorgu oluşturucu ve sıkı filtrelerle uzun videoları getir.
     func fetchVideos(for custom: CustomCategory, suppressOverlay: Bool = false, forceRefresh: Bool = false) {
         print("🎯 Fetch custom category: \(custom.name) -> \(custom.primaryKeyword) \(custom.secondaryKeyword ?? "")")
         isLoadingVideos = true
@@ -308,7 +307,7 @@ extension YouTubeAPIService {
         if !suppressOverlay { showGlobalLoading = true }
         isShowingSearchResults = false
     selectedCustomCategoryId = custom.id
-    // Also reseed Shorts based on this custom category so the Shorts rail matches the filter
+    // EN: Reseed Shorts so the rail matches the category. TR: Shorts şeridini kategoriye uygun olacak şekilde yeniden tohumla.
     fetchShortsVideos(suppressOverlay: true, forceRefresh: true)
         let query = buildQuery(for: custom)
         let startLocale = self.currentLocaleParams()
@@ -322,6 +321,7 @@ extension YouTubeAPIService {
                 // Build query candidates via centralized builder (same behavior)
                 let candidates = QueryBuilder.buildCustomCategoryQueries(hl: startLocale.hl, gl: startLocale.gl, custom: custom)
 
+                // EN: Remove short-like items and enforce date cutoff if set. TR: Shorts benzeri öğeleri çıkar, tarih kesimini uygula.
                 func applyStrictFilters(_ items: [YouTubeVideo]) -> [YouTubeVideo] {
                     var filtered = items
                     // Remove shorts-like items for long video feeds
@@ -340,13 +340,13 @@ extension YouTubeAPIService {
                     return filtered
                 }
 
-                // Sequentially fetch candidates until we have enough
+                // EN: Accumulate results across candidates until quota met. TR: Yeterli sayıya ulaşana dek adaylardan sonuç biriktir.
                 for q in candidates {
                     let items = try await LocalSearchAdapter.search(query: q, hl: startLocale.hl, gl: startLocale.gl, bypassCache: forceRefresh)
                     let filtered = applyStrictFilters(items)
                     for v in filtered where seen.insert(v.id).inserted { allResults.append(v) }
                     if allResults.count >= 30 { break }
-                    // Check token/locale mid-loop to avoid wasted work
+                    // EN: Abort if token or locale changed meanwhile. TR: Token veya yerel ayar değiştiyse vazgeç.
                     let current = self.currentLocaleParams()
                     if self.categoryFetchToken != token || current.hl != startLocale.hl || current.gl != startLocale.gl {
                         print("⏭️ Aborting custom category accumulation (locale/token changed)")
@@ -354,7 +354,7 @@ extension YouTubeAPIService {
                     }
                 }
 
-                // Fallback: if results are still too few (<= 6), reduce language/region influence
+                // EN: Fallback path if too few: broaden queries and reduce region bias. TR: Az sonuçta genişletilmiş sorgular ve bölge etkisini azalt.
                 if allResults.count <= 6 {
                     print("ℹ️ Low custom-category results (\(allResults.count)). Running region-agnostic fallback…")
                     var fallback: [String] = []
@@ -389,6 +389,7 @@ extension YouTubeAPIService {
                     }
                 }
 
+                // EN: Shuffle and cap to a tidy page-size. TR: Karıştır ve düzenli bir sayfa boyutuna sınırla.
                 allResults.shuffle()
                 let top = Array(allResults.prefix(30))
                 let current = self.currentLocaleParams()
@@ -411,6 +412,7 @@ extension YouTubeAPIService {
 
 // MARK: - Home recommendations from Watch History
 extension YouTubeAPIService {
+    // EN: Build Home recommendations from watch history (channels + frequent terms) respecting region. TR: İzleme geçmişinden (kanallar + sık terimler) bölgeye saygılı Ana önerileri üret.
     /// Build Home recommendations by analyzing recent watch history (channels and frequent terms), honoring region.
     func fetchHomeRecommendations(suppressOverlay: Bool = false) {
         print("🏠 Home recommendations from watch history")
@@ -432,6 +434,7 @@ extension YouTubeAPIService {
                 let topChannels = channelFreq.sorted { $0.value > $1.value }.prefix(3).map { $0.key }
                 seeds.append(contentsOf: topChannels)
                 // Frequent keywords from titles
+        // EN: Extract important keywords using NLTagger; fallback to tokenization. TR: NLTagger ile önemli anahtar sözcükleri çıkar; gerekirse parçala.
         func extractKeywords(_ text: String, lang: String) -> [String] {
                     let lower = text.lowercased()
                     var tokens: [String] = []
@@ -497,11 +500,13 @@ extension YouTubeAPIService {
 }
 
 extension Notification.Name {
+    // EN: Notification for region changes. TR: Bölge değişim bildirimi.
     static let selectedRegionChanged = Notification.Name("SelectedRegionChanged")
 }
 
 // MARK: - Cookie management for region changes
 extension YouTubeAPIService {
+    // EN: Clear YT/Google cookies and set fresh hl/gl, consent cookies for locale. TR: YouTube/Google çerezlerini temizle ve yerel ayar için yeni hl/gl ve onay çerezlerini ayarla.
     /// Clear all YouTube/Google cookies and set fresh region cookies (PREF hl/gl, plus consent bypass) for the given locale.
     fileprivate func resetYouTubeCookies(hl: String, gl: String?) async {
         let storage = HTTPCookieStorage.shared
@@ -511,7 +516,7 @@ extension YouTubeAPIService {
                 storage.deleteCookie(c)
             }
         }
-        // Prepare helper to insert a cookie
+        // EN: Helper to set a cookie with common properties. TR: Ortak özelliklerle çerez ayarlama yardımcı fonksiyonu.
         func setCookie(domain: String, name: String, value: String) {
             let props: [HTTPCookiePropertyKey: Any] = [
                 .domain: domain,
@@ -523,12 +528,12 @@ extension YouTubeAPIService {
             ]
             if let cookie = HTTPCookie(properties: props) { storage.setCookie(cookie) }
         }
-        // Always set consent bypass so HTML endpoints don't block with interstitials
+        // EN: Always set consent cookies to avoid interstitials. TR: Ara sayfaları önlemek için onay çerezlerini daima ayarla.
         for d in [".youtube.com", ".google.com"] {
             setCookie(domain: d, name: "CONSENT", value: "YES+")
             setCookie(domain: d, name: "SOCS", value: "CAI")
         }
-        // Region preference cookie
+        // EN: Region preference (PREF) encodes hl/gl. TR: Bölge tercihi (PREF) hl/gl'yi içerir.
         let pref: String = {
             if let g = gl { return "hl=\(hl)&gl=\(g)" }
             return "hl=\(hl)"
@@ -538,6 +543,7 @@ extension YouTubeAPIService {
 }
 
 extension YouTubeAPIService {
+    // EN: Find a video by id across all in-memory lists. TR: Bellekteki tüm listeler arasında id ile video bul.
     /// Herhangi bir listede (ana videolar, kategori cache'i, abonelikler, shorts, geçmiş, ilgili) verilen id'ye sahip videoyu bulur.
     func findVideo(by id: String) -> YouTubeVideo? {
         if let v = videos.first(where: { $0.id == id }) { return v }
@@ -555,9 +561,11 @@ extension YouTubeAPIService {
 
 // MARK: - Cache Management
 extension YouTubeAPIService {
+    // EN: Clear only image cache. TR: Sadece görsel önbelleğini temizle.
     func clearImageCache() {
         Task { await GlobalCaches.images.clear() }
     }
+    // EN: Clear data caches while preserving key preferences. TR: Temel tercihleri koruyarak veri önbelleklerini temizle.
     func clearDataCache() {
         Task {
             // Preserve preferences before clearing json cache
@@ -577,6 +585,7 @@ extension YouTubeAPIService {
         }
     }
 
+    // EN: Nuclear reset: clear disk caches, URLCache, history, subscriptions, and lists. TR: Tam sıfırlama: disk önbellekleri, URLCache, geçmiş, abonelikler ve listeleri temizle.
     /// Uygulamadaki tüm verileri temizle: disk önbellekler (json+image), URLCache, izleme geçmişi, abonelikler, listeler.
     @MainActor
     func clearAllData() {
@@ -611,6 +620,7 @@ extension YouTubeAPIService {
         isLoadingUserData = false
     }
 
+    // EN: Clear subscriptions from state and UserDefaults. TR: Abonelikleri durumdan ve UserDefaults'tan temizle.
     /// Abonelik listesini tamamen temizle ve UserDefaults'tan kaldır
     @MainActor
     func clearSubscriptions() {
@@ -624,6 +634,7 @@ extension YouTubeAPIService {
 // MARK: - Playlists (CSV import) persistence and helpers
 extension YouTubeAPIService {
     private func saveUserPlaylistsToUserDefaults() {
+        // EN: Persist playlists array under "userPlaylists" key. TR: Playlist dizisini "userPlaylists" anahtarıyla sakla.
         let enc = JSONEncoder()
         if let data = try? enc.encode(userPlaylists) {
             UserDefaults.standard.set(data, forKey: "userPlaylists")
@@ -632,6 +643,7 @@ extension YouTubeAPIService {
     }
 
     func loadUserPlaylistsFromUserDefaults() {
+        // EN: Load and backfill missing covers for older saves. TR: Yükle ve eski kayıtlarda eksik kapakları tamamla.
         if let data = UserDefaults.standard.data(forKey: "userPlaylists"),
            let decoded = try? JSONDecoder().decode([YouTubePlaylist].self, from: data) {
             // Backfill: eski kayıtlarda coverName olmayabilir – açarken atayalım
@@ -644,6 +656,7 @@ extension YouTubeAPIService {
         }
     }
 
+    // EN: Add a video id to a local playlist; update count. TR: Yerel bir playlist’e video id ekle; sayıyı güncelle.
     /// Add a video to a user playlist (local). Creates the videoIds array if needed and updates videoCount.
     @MainActor
     func addVideo(_ videoId: String, toPlaylistId playlistId: String) {
@@ -665,6 +678,7 @@ extension YouTubeAPIService {
         userPlaylists[idx] = updated
     }
 
+    // EN: Create a new local playlist with a random cover; optionally seed a first video. TR: Rastgele kapaklı yeni yerel playlist oluştur; isteğe bağlı ilk video ekle.
     /// Create a new local playlist with a random default cover. Optionally seed with a first video.
     @MainActor
     @discardableResult
@@ -690,6 +704,7 @@ extension YouTubeAPIService {
         return playlist
     }
 
+    // EN: Rename a playlist and persist. TR: Bir playlist’i yeniden adlandır ve kaydet.
     /// Rename a user playlist's title by id and persist to UserDefaults.
     @MainActor
     func renamePlaylist(playlistId: String, to newTitle: String) {
@@ -712,6 +727,7 @@ extension YouTubeAPIService {
 
     /// Accept playlist URLs or IDs (and optionally inline video IDs), normalize to IDs, and create minimal playlist entries.
     /// If tokens are pure video IDs/URLs, they are grouped under a synthetic playlist using the CSV file name (passed via special first token "__CSV_FILENAME__=...").
+    // EN: Import playlist/video tokens; normalize to playlists (and synthetic CSV playlist when needed). TR: Playlist/video belirteçlerini içe aktar; playlist’lere dönüştür (gerekirse sentetik CSV playlist’i).
     @MainActor
     func importPlaylists(from urlsOrIds: [String]) {
         var added: [YouTubePlaylist] = []
@@ -749,6 +765,7 @@ extension YouTubeAPIService {
         }
     }
 
+    // EN: Pick a random cover name from bundled Examples. TR: Paketli Examples klasöründen rastgele kapak adı seç.
     /// Random cover picker from bundled Examples images; returns logical base name without extension
     func randomPlaylistCoverName() -> String {
     // Known options in Examples. Include both the correct and historical misspelled variant for compatibility.
@@ -756,6 +773,7 @@ extension YouTubeAPIService {
         return candidates.randomElement() ?? "playlist"
     }
 
+    // EN: Extract playlist id from a variety of URL/ID inputs. TR: Çeşitli URL/ID girdilerinden playlist id çıkar.
     /// Best-effort playlist id extraction from various YouTube URL forms.
     func extractPlaylistId(from raw: String) -> String? {
         let s = raw.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -783,6 +801,7 @@ extension YouTubeAPIService {
         return nil
     }
 
+    // EN: Extract a video id from URL or raw id forms. TR: URL’den veya ham id’den video id çıkar.
     /// Best-effort video id extraction from various YouTube URL forms.
     func extractVideoId(from raw: String) -> String? {
         let s = raw.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -805,7 +824,7 @@ extension YouTubeAPIService {
         return nil
     }
 
-    // İlk yükleme için varsayılan 40 video; gerektiğinde artan dilimde yükler
+    // EN: For playlist view: load at least N items (fill/replace placeholders). TR: Playlist görünümü için: en az N öğe yükle (yer tutucuları doldur/değiştir).
     func loadPlaylistVideosIfNeeded(playlist: YouTubePlaylist, limit: Int = 40) async {
         // If cache has real content (not just placeholder rows), skip; otherwise ensure at least `limit` are loaded
         if let cached = cachedPlaylistVideos[playlist.id], !cached.isEmpty {
@@ -819,6 +838,7 @@ extension YouTubeAPIService {
     /// Ensure at least minCount items are loaded into cachedPlaylistVideos[playlist.id].
     /// - For remote playlists (no inline videoIds), uses LocalPlaylistAdapter.fetchVideos with increasing limit.
     /// - For local playlists (videoIds present), fetch metadata for the next slice and append.
+    // EN: Ensure cachedPlaylistVideos[playlist.id] contains at least minCount real items. TR: cachedPlaylistVideos[playlist.id] içinde en az minCount gerçek öğe olduğundan emin ol.
     func ensurePlaylistLoadedCount(playlist: YouTubePlaylist, minCount: Int) async {
         let key = playlist.id
     // Count only real loaded items (placeholders have empty title+channel)
@@ -851,7 +871,7 @@ extension YouTubeAPIService {
     }
 
         if let vids = playlist.videoIds, !vids.isEmpty {
-            // Local playlist: expand by fetching metadata for missing slice
+            // EN: Local playlist path: fetch metadata for the next slice. TR: Yerel playlist yolu: bir sonraki dilimin bilgisini getir.
         await MainActor.run { self.totalPlaylistCountById[key] = vids.count }
         let locale = currentLocaleParams()
         let sliceEnd = min(minCount, vids.count)
@@ -907,7 +927,7 @@ extension YouTubeAPIService {
                 }
             }
         } else {
-            // Remote playlist: ask adapter for a larger prefix and assign
+            // EN: Remote playlist path: fetch more prefix items and enrich a few. TR: Uzak playlist yolu: daha fazla önek öğe çek ve bir kısmını zenginleştir.
             do {
                 var items = try await LocalPlaylistAdapter.fetchVideos(playlistId: key, limit: minCount)
                 // Enrich the first few items with view/date using the same local metadata path used on homepage
@@ -935,6 +955,7 @@ extension YouTubeAPIService {
     /// Ensure at least minCount items for a playlist by id, even if not present in userPlaylists.
     /// This mirrors the behavior of `ensurePlaylistLoadedCount(playlist:minCount:)` for the
     /// remote playlist path and delegates to the playlist-based overload when possible.
+    // EN: Ensure at least minCount items even when only an id is known. TR: Sadece id bilinse bile en az minCount öğeden emin ol.
     @MainActor
     func ensurePlaylistLoadedCount(playlistId: String, minCount: Int) async {
         // If we have a concrete playlist object (e.g., a local user playlist), delegate to the typed version
@@ -972,12 +993,14 @@ extension YouTubeAPIService {
 
 // MARK: - Like Count Fetch (Data API)
 extension YouTubeAPIService {
+    // EN: Fetch like-count details only if missing from cache. TR: Önbellekte yoksa beğeni sayısını getir.
     func fetchLikeCountIfNeeded(videoId: String) {
         if let existing = likeCountByVideoId[videoId], !existing.isEmpty { return }
         fetchVideoDetails(videoId: videoId)
     }
 
     /// Canlı yayınlar için izleyici sayısını tek seferlik çek ve cache'le.
+    // EN: Fetch live viewer counts once per view. TR: Canlı izleyici sayısını görünüm başına bir kez getir.
     func fetchLiveViewersIfNeeded(videoId: String) {
         // İstek: cache olmasın, her görünümde tazele
         if fetchingLiveViewers.contains(videoId) { return }
@@ -999,6 +1022,7 @@ extension YouTubeAPIService {
     }
 
     /// Ham metinden yalnızca "... watching (now)" / "... izleyici" ifadesine BİTİŞİK sayıyı çıkar ve kısa format döndür.
+    // EN: Parse numbers adjacent to “watching now/izleyici”; return short format. TR: “watching now/izleyici” çevresindeki sayıları ayrıştır; kısa format döndür.
     private func parseWatchingCount(rawText: String) -> String? {
         let text = rawText
         // 1) Öncelik: sayı (opsiyonel K/M/B/Mn) + boşluk + (watching now|watching|izleyici)
@@ -1028,6 +1052,7 @@ extension YouTubeAPIService {
     }
 
     /// Gerçekçi olmayan aşırı yüksek sayıları eler (yanlış kaynaktan gelen 70M gibi); yoksa kısa format döndürür.
+    // EN: Drop unrealistic outliers; return compact count string. TR: Gerçekçi olmayan uç değerleri ele; kompakt sayı döndür.
     private func sanitizeLiveCount(_ n: Int) -> String? {
         // Canlı eşzamanlı izleyici sayısının pratik üst sınırı (emniyet payıyla)
         if n > 5_000_000 { return nil }
@@ -1037,10 +1062,12 @@ extension YouTubeAPIService {
 
 struct MainAppView: View {
     var body: some View {
+        // EN: App's root content view. TR: Uygulamanın kök içerik görünümü.
         MainContentView()
     }
 }
 
 #Preview {
+    // EN: Preview the root content container. TR: Kök içerik konteynerini önizle.
     MainAppView()
 }
